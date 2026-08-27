@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ResoDrive.App/ResoDrive.App.csproj" />
+    <Project Path="src/ResoDrive.Core/ResoDrive.Core.csproj" />
+    <Project Path="src/ResoDrive.Host/ResoDrive.Host.csproj" />
+    <Project Path="src/ResoDrive.Windows/ResoDrive.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ResoDrive.Core.Tests/ResoDrive.Core.Tests.csproj" />
+    <Project Path="tests/ResoDrive.App.Tests/ResoDrive.App.Tests.csproj" />
+    <Project Path="tests/ResoDrive.Windows.Tests/ResoDrive.Windows.Tests.csproj" />
+  </Folder>
+</Solution>

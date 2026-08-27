@@ -1,0 +1,43 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <NuGetLockFilePath>packages.installer.lock.json</NuGetLockFilePath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Bundle.wxs</DefaultItemExcludes>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <OutputName>$(ResoDriveExecutableBaseName)-$(ResoDriveRuntime)-$(ResoDriveVersion)</OutputName>
+    <DefineConstants>
+      PackageSource=$(PackageSource);
+      ResoDriveVersion=$(ResoDriveVersion);
+      ResoDriveUpgradeCode=$(ResoDriveUpgradeCode);
+      ResoDriveProductName=$(ResoDriveProductName);
+      ResoDrivePublisher=$(ResoDrivePublisher);
+      ResoDriveDescription=$(ResoDriveDescription);
+      ResoDriveExecutableBaseName=$(ResoDriveExecutableBaseName);
+      ResoDriveExecutableName=$(ResoDriveExecutableName);
+      DotNetDesktopRuntimeMinimumVersion=$(DotNetDesktopRuntimeMinimumVersion);
+      IconSource=$(MSBuildProjectDirectory)\..\src\ResoDrive.App\resodrive.ico
+    </DefineConstants>
+  </PropertyGroup>
+
+  <Target Name="ValidateResoDriveInstallerProperties" BeforeTargets="Build">
+    <Error Condition="'$(PackageSource)' == ''" Text="PackageSource must point to the staged ResoDrive release directory." />
+    <Error Condition="'$(ResoDriveVersion)' == ''" Text="ResoDriveVersion is required." />
+    <Error Condition="'$(ResoDriveRuntime)' == ''" Text="ResoDriveRuntime is required." />
+    <Error Condition="'$(ResoDriveUpgradeCode)' == ''" Text="ResoDriveUpgradeCode is required." />
+    <Error Condition="'$(ResoDriveProductName)' == ''" Text="ResoDriveProductName is required." />
+    <Error Condition="'$(ResoDrivePublisher)' == ''" Text="ResoDrivePublisher is required." />
+    <Error Condition="'$(ResoDriveDescription)' == ''" Text="ResoDriveDescription is required." />
+    <Error Condition="'$(ResoDriveExecutableBaseName)' == ''" Text="ResoDriveExecutableBaseName is required." />
+    <Error Condition="'$(ResoDriveExecutableName)' == ''" Text="ResoDriveExecutableName is required." />
+    <Error Condition="'$(DotNetDesktopRuntimeMinimumVersion)' == ''" Text="DotNetDesktopRuntimeMinimumVersion is required." />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" />
+    <PackageReference Include="WixToolset.Netfx.wixext" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <BindVariable Include="WixUILicenseRtf=$(MSBuildProjectDirectory)\License.rtf" />
+  </ItemGroup>
+</Project>

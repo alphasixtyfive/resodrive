@@ -1,0 +1,151 @@
+<Wix
+  xmlns="http://wixtoolset.org/schemas/v4/wxs"
+  xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx"
+  xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+>
+  <Package
+    Name="$(var.ResoDriveProductName)"
+    Manufacturer="$(var.ResoDrivePublisher)"
+    Version="$(var.ResoDriveVersion)"
+    UpgradeCode="$(var.ResoDriveUpgradeCode)"
+    Language="1033"
+    Scope="perMachine"
+    InstallerVersion="500"
+    Compressed="yes"
+  >
+    <SummaryInformation Description="$(var.ResoDriveDescription)" />
+    <MajorUpgrade
+      DowngradeErrorMessage="A newer version of $(var.ResoDriveProductName) is already installed."
+      Schedule="afterInstallInitialize"
+    />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="resodrive.ico" SourceFile="$(var.IconSource)" />
+    <Property Id="ARPPRODUCTICON" Value="resodrive.ico" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch $(var.ResoDriveProductName)" />
+    <netfx:DotNetCompatibilityCheck
+      Property="DOTNET_DESKTOP_RUNTIME_CHECK"
+      RuntimeType="desktop"
+      Platform="x64"
+      Version="$(var.DotNetDesktopRuntimeMinimumVersion)"
+      RollForward="minor"
+    />
+    <Launch
+      Condition="Installed OR DOTNET_DESKTOP_RUNTIME_CHECK = 0"
+      Message="$(var.ResoDriveProductName) requires the .NET 10 Desktop Runtime. Run ResoDrive-Setup.exe to install it automatically."
+    />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="rdrive" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="$(var.ResoDriveProductName)" />
+    </StandardDirectory>
+
+    <ComponentGroup Id="ApplicationFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PackageSource)\**">
+        <Exclude Files="$(var.PackageSource)\$(var.ResoDriveExecutableName)" />
+        <Exclude Files="$(var.PackageSource)\profiles.sample.json" />
+      </Files>
+      <Component Id="SampleProfiles" Guid="2E1BB141-3D85-4177-8498-54A0833D2B23">
+        <File Id="SampleProfilesFile" Source="$(var.PackageSource)\profiles.sample.json" KeyPath="yes" />
+      </Component>
+      <Component Id="ResoDriveExecutable" Guid="*">
+        <File
+          Id="ResoDriveExecutableFile"
+          Source="$(var.PackageSource)\$(var.ResoDriveExecutableName)"
+          KeyPath="yes"
+        >
+          <Shortcut
+            Id="ResoDriveStartMenuShortcut"
+            Directory="ApplicationProgramsFolder"
+            Name="$(var.ResoDriveProductName)"
+            Description="rclone mount and sync manager"
+            WorkingDirectory="INSTALLFOLDER"
+            Advertise="yes"
+            Icon="resodrive.ico"
+            IconIndex="0"
+          />
+        </File>
+        <RemoveFolder
+          Id="RemoveApplicationProgramsFolder"
+          Directory="ApplicationProgramsFolder"
+          On="uninstall"
+        />
+      </Component>
+    </ComponentGroup>
+
+    <ui:WixUI Id="WixUI_Minimal" />
+
+    <CustomAction
+      Id="LaunchResoDrive"
+      FileRef="ResoDriveExecutableFile"
+      ExeCommand=""
+      Execute="immediate"
+      Return="asyncNoWait"
+      Impersonate="yes"
+    />
+    <!-- Ask the installed app to drain managed work before stopping its UI process. -->
+    <CustomAction
+      Id="PrepareInstalledResoDriveForUpgrade"
+      Directory="INSTALLFOLDER"
+      ExeCommand="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoP -NonI -ExecutionPolicy Bypass -Command &quot;$p=Join-Path (pwd) '$(var.ResoDriveExecutableName)';if(Test-Path -LiteralPath $p){&amp; $p --prepare-update;exit $LASTEXITCODE};exit 0&quot;"
+      Execute="immediate"
+      Return="check"
+      Impersonate="yes"
+    />
+    <CustomAction
+      Id="StopResoDriveForUpgrade"
+      Directory="INSTALLFOLDER"
+      ExeCommand="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoP -NonI -Command &quot;$p=(pwd).Path+'\resodrive.exe';gps resodrive -ea 0|? Path -eq $p|kill -Force -ea Stop&quot;"
+      Execute="immediate"
+      Return="check"
+      Impersonate="no"
+    />
+    <CustomAction
+      Id="UnregisterResoDriveAutostart"
+      FileRef="ResoDriveExecutableFile"
+      ExeCommand="--unregister-autostart"
+      Execute="immediate"
+      Return="ignore"
+      Impersonate="yes"
+    />
+
+    <InstallExecuteSequence>
+      <!--
+        Drain work before replacing files during upgrades and maintenance reinstalls.
+        Do not run these actions for an explicit uninstall.
+      -->
+      <Custom
+        Action="PrepareInstalledResoDriveForUpgrade"
+        After="InstallValidate"
+        Condition="(WIX_UPGRADE_DETECTED OR Installed) AND NOT (REMOVE~=&quot;ALL&quot;)"
+      />
+      <Custom
+        Action="StopResoDriveForUpgrade"
+        After="PrepareInstalledResoDriveForUpgrade"
+        Condition="(WIX_UPGRADE_DETECTED OR Installed) AND NOT (REMOVE~=&quot;ALL&quot;)"
+      />
+      <Custom
+        Action="UnregisterResoDriveAutostart"
+        Before="RemoveFiles"
+        Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE"
+      />
+    </InstallExecuteSequence>
+
+    <UI>
+      <Publish
+        Dialog="ExitDialog"
+        Control="Finish"
+        Event="DoAction"
+        Value="LaunchResoDrive"
+        Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT (REMOVE = &quot;ALL&quot;)"
+      />
+    </UI>
+
+    <Feature Id="MainFeature" Title="$(var.ResoDriveProductName)" Level="1">
+      <ComponentGroupRef Id="ApplicationFiles" />
+    </Feature>
+  </Package>
+</Wix>

@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>ResoDrive.App.Tests</RootNamespace>
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ResoDrive.App\ResoDrive.App.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\src\ResoDrive.App\MainWindow.xaml" Link="Fixtures\MainWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\ResoDrive.App\Themes\Controls.xaml" Link="Fixtures\Controls.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\ResoDrive.App\WelcomeWindow.xaml" Link="Fixtures\WelcomeWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\ResoDrive.App\SetupWindow.xaml" Link="Fixtures\SetupWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\ResoDrive.App\AboutWindow.xaml" Link="Fixtures\AboutWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\ResoDrive.App\MountEditorWindow.xaml" Link="Fixtures\MountEditorWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\ResoDrive.App\SyncEditorWindow.xaml" Link="Fixtures\SyncEditorWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\ResoDrive.App\MessageDialog.xaml" Link="Fixtures\MessageDialog.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\ResoDrive.App\MainWindow.xaml.cs" Link="Fixtures\MainWindow.xaml.cs" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

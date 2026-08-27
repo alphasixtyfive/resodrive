@@ -1,0 +1,37 @@
+name: Bug report
+description: Tell us what went wrong and how to reproduce it
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to report this. Before posting, remove passwords, private keys, private server addresses, and other sensitive details from logs or configuration files.
+  - type: input
+    id: version
+    attributes:
+      label: ResoDrive version
+      placeholder: Shown in Settings or About
+    validations:
+      required: true
+  - type: dropdown
+    id: windows
+    attributes:
+      label: Windows version
+      options:
+        - Windows 11
+        - Windows 10
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant redacted logs
+      description: Paste only the part that helps explain the problem, with sensitive details removed.
+      render: text

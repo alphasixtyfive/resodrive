@@ -1,0 +1,46 @@
+<Wix
+  xmlns="http://wixtoolset.org/schemas/v4/wxs"
+  xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal"
+  xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx"
+>
+  <Bundle
+    Name="$(var.ResoDriveProductName) Setup"
+    Manufacturer="$(var.ResoDrivePublisher)"
+    Version="$(var.ResoDriveVersion)"
+    UpgradeCode="$(var.ResoDriveBundleUpgradeCode)"
+    IconSourceFile="$(var.IconSource)"
+  >
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication Theme="rtfLicense" LicenseFile="$(var.LicenseSource)" />
+    </BootstrapperApplication>
+
+    <netfx:DotNetCoreSearch
+      RuntimeType="desktop"
+      Platform="x64"
+      MajorVersion="10"
+      Variable="DotNetDesktopRuntimeVersion"
+    />
+
+    <Chain>
+      <ExePackage
+        Id="DotNetDesktopRuntime"
+        DetectCondition="DotNetDesktopRuntimeVersion &gt;= v$(var.DotNetDesktopRuntimeMinimumVersion)"
+        InstallArguments="/install /quiet /norestart"
+        RepairArguments="/repair /quiet /norestart"
+        UninstallArguments="/uninstall /quiet /norestart"
+        PerMachine="yes"
+        Permanent="yes"
+        Cache="remove"
+        Vital="yes"
+      >
+        <ExePackagePayload
+          Name="windowsdesktop-runtime-$(var.DotNetDesktopRuntimeVersion)-win-x64.exe"
+          DownloadUrl="$(var.DotNetDesktopRuntimeUrl)"
+          Hash="$(var.DotNetDesktopRuntimeSha512)"
+          Size="$(var.DotNetDesktopRuntimeSize)"
+        />
+      </ExePackage>
+      <MsiPackage SourceFile="$(var.MsiSource)" Compressed="yes" Vital="yes" />
+    </Chain>
+  </Bundle>
+</Wix>

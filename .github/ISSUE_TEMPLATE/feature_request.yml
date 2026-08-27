@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest a change that would make ResoDrive more useful
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: How would you like ResoDrive to handle it?
+    validations:
+      required: true

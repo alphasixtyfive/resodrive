@@ -1,0 +1,41 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <OutputType>Bundle</OutputType>
+    <NuGetLockFilePath>packages.bootstrapper.lock.json</NuGetLockFilePath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Package.wxs</DefaultItemExcludes>
+    <OutputName>$(ResoDriveExecutableBaseName)-$(ResoDriveRuntime)-$(ResoDriveVersion)-setup</OutputName>
+    <DefineConstants>
+      MsiSource=$(MsiSource);
+      ResoDriveVersion=$(ResoDriveVersion);
+      ResoDriveProductName=$(ResoDriveProductName);
+      ResoDrivePublisher=$(ResoDrivePublisher);
+      ResoDriveBundleUpgradeCode=$(ResoDriveBundleUpgradeCode);
+      DotNetDesktopRuntimeVersion=$(DotNetDesktopRuntimeVersion);
+      DotNetDesktopRuntimeMinimumVersion=$(DotNetDesktopRuntimeMinimumVersion);
+      DotNetDesktopRuntimeUrl=$(DotNetDesktopRuntimeUrl);
+      DotNetDesktopRuntimeSha512=$(DotNetDesktopRuntimeSha512);
+      DotNetDesktopRuntimeSize=$(DotNetDesktopRuntimeSize);
+      LicenseSource=$(MSBuildProjectDirectory)\License.rtf;
+      IconSource=$(MSBuildProjectDirectory)\..\src\ResoDrive.App\resodrive.ico
+    </DefineConstants>
+  </PropertyGroup>
+
+  <Target Name="ValidateResoDriveBundleProperties" BeforeTargets="Build">
+    <Error Condition="'$(MsiSource)' == ''" Text="MsiSource must point to the built ResoDrive MSI." />
+    <Error Condition="'$(ResoDriveVersion)' == ''" Text="ResoDriveVersion is required." />
+    <Error Condition="'$(ResoDriveRuntime)' == ''" Text="ResoDriveRuntime is required." />
+    <Error Condition="'$(ResoDriveProductName)' == ''" Text="ResoDriveProductName is required." />
+    <Error Condition="'$(ResoDrivePublisher)' == ''" Text="ResoDrivePublisher is required." />
+    <Error Condition="'$(ResoDriveBundleUpgradeCode)' == ''" Text="ResoDriveBundleUpgradeCode is required." />
+    <Error Condition="'$(DotNetDesktopRuntimeVersion)' == ''" Text="DotNetDesktopRuntimeVersion is required." />
+    <Error Condition="'$(DotNetDesktopRuntimeMinimumVersion)' == ''" Text="DotNetDesktopRuntimeMinimumVersion is required." />
+    <Error Condition="'$(DotNetDesktopRuntimeUrl)' == ''" Text="DotNetDesktopRuntimeUrl is required." />
+    <Error Condition="'$(DotNetDesktopRuntimeSha512)' == ''" Text="DotNetDesktopRuntimeSha512 is required." />
+    <Error Condition="'$(DotNetDesktopRuntimeSize)' == ''" Text="DotNetDesktopRuntimeSize is required." />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.BootstrapperApplications.wixext" />
+    <PackageReference Include="WixToolset.Netfx.wixext" />
+  </ItemGroup>
+</Project>

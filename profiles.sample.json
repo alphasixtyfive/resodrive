@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 2,
+  "profiles": [
+    {
+      "id": "example-nextcloud",
+      "displayName": "Example Nextcloud (edit before use)",
+      "description": "Replace the example address and defaults with your deployment settings.",
+      "defaultRemoteName": "Nextcloud",
+      "connection": {
+        "type": "webdav",
+        "baseUrl": "https://nextcloud.example.invalid/",
+        "pathTemplate": "/remote.php/dav/files/{username}",
+        "vendor": "nextcloud"
+      },
+      "defaultRemotePath": "",
+      "defaultDriveLetter": "U",
+      "startWithWindowsByDefault": false,
+      "mountArguments": [
+        "--poll-interval",
+        "0"
+      ]
+    }
+  ]
+}
