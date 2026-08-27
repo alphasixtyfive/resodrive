@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a reproducible ResoDrive problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve ResoDrive. Do not include passwords, private keys, or unredacted configuration files.
+  - type: input
+    id: version
+    attributes:
+      label: ResoDrive version
+      placeholder: 0.2.29
+    validations:
+      required: true
+  - type: dropdown
+    id: windows
+    attributes:
+      label: Windows version
+      options:
+        - Windows 11
+        - Windows 10
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include the expected behavior and exact steps to reproduce the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant redacted logs
+      render: text

@@ -1,0 +1,46 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <VersionPrefix>0.2.29</VersionPrefix>
+    <ProductDisplayName>ResoDrive</ProductDisplayName>
+    <ExecutableBaseName>resodrive</ExecutableBaseName>
+    <ProductDescription>Modern rclone mount and sync manager for Windows</ProductDescription>
+    <ProductPublisher>Alexey Ivanov</ProductPublisher>
+    <!-- Repository identity is centralized here for application links, package
+         metadata, update checks, documentation, and release automation. -->
+    <GitHubOwner>alphasixtyfive</GitHubOwner>
+    <GitHubRepository>resodrive</GitHubRepository>
+    <GitHubBaseUrl>https://github.com</GitHubBaseUrl>
+    <GitHubApiBaseUrl>https://api.github.com</GitHubApiBaseUrl>
+    <DeveloperUrl>$(GitHubBaseUrl)/$(GitHubOwner)</DeveloperUrl>
+    <RepositoryUrl>$(GitHubBaseUrl)/$(GitHubOwner)/$(GitHubRepository)</RepositoryUrl>
+    <RepositoryReleasesUrl>$(RepositoryUrl)/releases</RepositoryReleasesUrl>
+    <RepositoryIssuesUrl>$(RepositoryUrl)/issues</RepositoryIssuesUrl>
+    <RepositoryLatestReleaseApiUrl>$(GitHubApiBaseUrl)/repos/$(GitHubOwner)/$(GitHubRepository)/releases/latest</RepositoryLatestReleaseApiUrl>
+    <Authors>$(ProductPublisher)</Authors>
+    <Company>$(ProductPublisher)</Company>
+    <Product>$(ProductDisplayName)</Product>
+    <Description>$(ProductDescription)</Description>
+    <Copyright>Copyright © 2026 Alexey Ivanov</Copyright>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>0BSD</PackageLicenseExpression>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="DeveloperUrl" Value="$(DeveloperUrl)" />
+    <AssemblyMetadata Include="RepositoryUrl" Value="$(RepositoryUrl)" />
+    <AssemblyMetadata Include="RepositoryReleasesUrl" Value="$(RepositoryReleasesUrl)" />
+    <AssemblyMetadata Include="RepositoryIssuesUrl" Value="$(RepositoryIssuesUrl)" />
+    <AssemblyMetadata Include="RepositoryLatestReleaseApiUrl" Value="$(RepositoryLatestReleaseApiUrl)" />
+  </ItemGroup>
+</Project>

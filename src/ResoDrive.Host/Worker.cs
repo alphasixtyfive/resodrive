@@ -1,0 +1,657 @@
+using System.Collections.Concurrent;
+using System.IO.Pipes;
+using System.Text.Json;
+using ResoDrive.Core.Domain;
+using ResoDrive.Core.Results;
+using ResoDrive.Core.Settings;
+using ResoDrive.Windows;
+
+namespace ResoDrive.Host;
+
+public sealed partial class Worker : BackgroundService
+{
+    private static readonly TimeSpan OperationDrainTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan ClientRequestTimeout = TimeSpan.FromSeconds(10);
+    private readonly ApplicationPaths _paths;
+    private readonly ILogger<Worker> _logger;
+    private readonly IHostApplicationLifetime _applicationLifetime;
+    private readonly SemaphoreSlim _reloadGate = new(1, 1);
+    private readonly SemaphoreSlim _scheduleStateGate = new(1, 1);
+    private readonly SemaphoreSlim _slots = new(2, 2);
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _operations = new();
+    private readonly ConcurrentDictionary<int, Task> _tasks = new();
+    private readonly ConcurrentDictionary<SyncJobId, DateTimeOffset> _lastRuns = new();
+    private AtomicSettingsStore? _store;
+    private RcloneMountCoordinator? _mounts;
+    private RcloneSyncCoordinator? _syncs;
+    private ManagerSettings? _settings;
+    private IReadOnlyList<MountDefinition> _definitions = [];
+    private string? _rclonePath;
+    private string? _configPath;
+    private int _taskId;
+    private bool _firstSchedulePass = true;
+    private bool _shutdownRequested;
+
+    public Worker(
+        ApplicationPaths paths,
+        ILogger<Worker> logger,
+        IHostApplicationLifetime applicationLifetime)
+    {
+        _paths = paths;
+        _logger = logger;
+        _applicationLifetime = applicationLifetime;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _store = new AtomicSettingsStore(_paths);
+        await LoadScheduleStateAsync(stoppingToken).ConfigureAwait(false);
+        var result = await ReloadAsync(stoppingToken).ConfigureAwait(false);
+        if (!result.Succeeded)
+        {
+            LogInitializationFailure(_logger, result.Error?.Code, result.Error?.Message);
+        }
+        await Task.WhenAll(ServeAsync(stoppingToken), ScheduleAsync(stoppingToken)).ConfigureAwait(false);
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        foreach (var source in _operations.Values)
+        {
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // A completing operation can remove and dispose its source concurrently.
+            }
+        }
+
+        try
+        {
+            await base.StopAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            var tasks = _tasks.Values.ToArray();
+            if (tasks.Length != 0)
+            {
+                try
+                {
+                    await Task.WhenAll(tasks)
+                        .WaitAsync(OperationDrainTimeout, CancellationToken.None)
+                        .ConfigureAwait(false);
+                }
+                catch (TimeoutException)
+                {
+                    LogDrainTimeout(_logger, tasks.Length);
+                }
+            }
+
+            if (_mounts is not null)
+            {
+                await _mounts.DisposeAsync().ConfigureAwait(false);
+            }
+            _syncs?.Dispose();
+            _store?.Dispose();
+        }
+    }
+
+    public override void Dispose()
+    {
+        _reloadGate.Dispose();
+        _scheduleStateGate.Dispose();
+        _slots.Dispose();
+        foreach (var source in _operations.Values)
+        {
+            source.Dispose();
+        }
+        base.Dispose();
+    }
+
+    private async Task ServeAsync(CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            var pipe = new NamedPipeServerStream(HostProtocol.GetPipeName(_paths), PipeDirection.InOut,
+                NamedPipeServerStream.MaxAllowedServerInstances, PipeTransmissionMode.Byte,
+                PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+            try
+            {
+                await pipe.WaitForConnectionAsync(token).ConfigureAwait(false);
+            }
+            catch
+            {
+                await pipe.DisposeAsync().ConfigureAwait(false);
+                throw;
+            }
+            Track(HandleClientAsync(pipe, token));
+        }
+    }
+
+    private async Task HandleClientAsync(NamedPipeServerStream pipe, CancellationToken token)
+    {
+        await using (pipe.ConfigureAwait(false))
+        {
+            HostResponse response;
+            var shutdownRequested = false;
+            try
+            {
+                using var requestTimeout = new CancellationTokenSource(ClientRequestTimeout);
+                using var requestToken = CancellationTokenSource.CreateLinkedTokenSource(
+                    token,
+                    requestTimeout.Token);
+                var request = await HostProtocol.ReadAsync<HostRequest>(pipe, requestToken.Token)
+                    .ConfigureAwait(false);
+                response = request is null ? new(false, "host.invalid_request", "The request was empty.")
+                    : await HandleAsync(request, token).ConfigureAwait(false);
+                shutdownRequested = response.Succeeded && string.Equals(
+                    request?.Command,
+                    "shutdown",
+                    StringComparison.OrdinalIgnoreCase);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (OperationCanceledException)
+            {
+                response = new(
+                    false,
+                    "host.request_timeout",
+                    "The client did not send a complete request in time.");
+            }
+            catch (Exception exception)
+            {
+                LogClientFailure(_logger, exception);
+                response = new(false, exception is IOException or InvalidDataException or JsonException or ArgumentException
+                    ? "host.invalid_request" : "host.failure", "The host could not process the request.");
+            }
+            try
+            {
+                await HostProtocol.WriteAsync(pipe, response, token).ConfigureAwait(false);
+                if (shutdownRequested)
+                {
+                    _applicationLifetime.StopApplication();
+                }
+            }
+            catch (Exception exception) when (exception is IOException or OperationCanceledException)
+            {
+                LogClientFailure(_logger, exception);
+            }
+        }
+    }
+
+    private async Task<HostResponse> HandleAsync(HostRequest request, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(request.Command))
+        {
+            return new(false, "host.command", "A command is required.");
+        }
+        if (!HostProtocol.AcceptsBaseDirectory(
+                request.ExpectedHostBaseDirectory,
+                AppContext.BaseDirectory))
+        {
+            var status = Status();
+            return status with
+            {
+                Succeeded = false,
+                ErrorCode = "host.different_installation",
+                ErrorMessage = "Another ResoDrive installation is already managing this account."
+            };
+        }
+        var command = request.Command.Trim().ToLowerInvariant();
+        if (command == "status")
+        {
+            return Status();
+        }
+        if (command == "shutdown")
+        {
+            return await HandleShutdownAsync(request, token).ConfigureAwait(false);
+        }
+        await _reloadGate.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            if (command is "reload" or "activate-runtime")
+            {
+                var reloaded = await ReloadCoreAsync(token).ConfigureAwait(false);
+                if (!reloaded.Succeeded || command == "reload")
+                    return Response(reloaded);
+
+                QueueEligibleAutoMounts(token);
+                return Status();
+            }
+            if (_mounts is null)
+            {
+                return new(false, "host.not_ready", "The background host is not ready.");
+            }
+            var mountCoordinator = _mounts;
+            if (request.MountId is not Guid mountGuid || mountGuid == Guid.Empty)
+            {
+                return new(false, "host.mount_id", "A valid mount ID is required.");
+            }
+            var mountId = new MountId(mountGuid);
+            if (command is "run-sync" or "cancel-sync")
+            {
+                if (_syncs is null || request.SyncJobId is not Guid syncGuid || syncGuid == Guid.Empty)
+                {
+                    return new(false, "host.sync_job_id", "A valid sync job ID is required.");
+                }
+                var syncId = new SyncJobId(syncGuid);
+                if (command == "cancel-sync")
+                {
+                    if (_operations.TryGetValue(SyncKey(syncId), out var source))
+                    {
+                        try
+                        {
+                            source.Cancel();
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                        }
+                    }
+                    var cancelled = await _syncs.CancelAsync(mountId, syncId, token).ConfigureAwait(false);
+                    if (cancelled.Error?.Code == "sync.not_running")
+                    {
+                        await _syncs.MarkCancelledAsync(mountId, syncId).ConfigureAwait(false);
+                    }
+                    return cancelled.Succeeded || cancelled.Error?.Code == "sync.not_running" ? Status() : Response(cancelled);
+                }
+                return QueueSync(mountId, syncId, false, token) ? Status()
+                    : new(false, "host.operation_in_progress", "This sync job is already queued or running.");
+            }
+            Func<CancellationToken, Task<OperationResult>>? action = command switch
+            {
+                "start" => operationToken => mountCoordinator.StartAsync(mountId, operationToken),
+                "stop" => operationToken => mountCoordinator.StopAsync(mountId, operationToken),
+                "restart" => operationToken => mountCoordinator.RestartAsync(mountId, operationToken),
+                _ => null
+            };
+            if (action is null)
+            {
+                return new(false, "host.command", $"Unknown host command '{request.Command}'.");
+            }
+            return Queue(
+                    MountKey(mountId),
+                    action,
+                    token,
+                    () => mountCoordinator.MarkPending(mountId, command is "stop" or "restart"))
+                ? Status()
+                : new(false, "host.operation_in_progress", "A mount operation is already queued or running.");
+        }
+        finally
+        {
+            _reloadGate.Release();
+        }
+    }
+
+    private async Task<HostResponse> HandleShutdownAsync(
+        HostRequest request,
+        CancellationToken token)
+    {
+        await _reloadGate.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(request.ExpectedHostBaseDirectory) &&
+                !HostProtocol.IsSameBaseDirectory(
+                    request.ExpectedHostBaseDirectory,
+                    AppContext.BaseDirectory))
+            {
+                return new(
+                    false,
+                    "host.changed",
+                    "The active ResoDrive host changed before takeover could begin.",
+                    HostBaseDirectory: AppContext.BaseDirectory
+                );
+            }
+
+            _shutdownRequested = true;
+            if (HasWork() && !request.Confirmed)
+            {
+                _shutdownRequested = false;
+                return new(
+                    false,
+                    "host.work_active",
+                    "Mounted drives or sync jobs are still active. Confirm exit to stop them.",
+                    HostBaseDirectory: AppContext.BaseDirectory
+                );
+            }
+
+            return new(true, HostBaseDirectory: AppContext.BaseDirectory);
+        }
+        finally
+        {
+            _reloadGate.Release();
+        }
+    }
+
+    private async Task ScheduleAsync(CancellationToken token)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+        do
+        {
+            var now = DateTimeOffset.UtcNow;
+            var changed = false;
+            await _reloadGate.WaitAsync(token).ConfigureAwait(false);
+            try
+            {
+                foreach (var item in _definitions.SelectMany(mount =>
+                             mount.SyncJobs.Select(job => (Mount: mount, Job: job))))
+                {
+                    if (!item.Job.Enabled)
+                    {
+                        continue;
+                    }
+                    var runOnStart = _firstSchedulePass && item.Job.Schedule.RunOnApplicationStart;
+                    if (!_lastRuns.TryGetValue(item.Job.Id, out var previous))
+                    {
+                        _lastRuns[item.Job.Id] = now;
+                        changed = true;
+                        if (!runOnStart)
+                        {
+                            continue;
+                        }
+                    }
+                    else if (!runOnStart && (!item.Job.Schedule.Enabled || now - previous < item.Job.Schedule.Interval))
+                    {
+                        continue;
+                    }
+                    QueueSync(item.Mount.Id, item.Job.Id, true, token);
+                }
+                _firstSchedulePass = false;
+            }
+            finally
+            {
+                _reloadGate.Release();
+            }
+            if (changed)
+            {
+                await SaveScheduleStateAsync(token).ConfigureAwait(false);
+            }
+        } while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false));
+    }
+
+    private bool QueueSync(MountId mountId, SyncJobId syncId, bool scheduled, CancellationToken token)
+    {
+        var coordinator = _syncs;
+        return coordinator is not null && Queue(SyncKey(syncId), async operationToken =>
+        {
+            var result = await coordinator.RunAsync(mountId, syncId, operationToken).ConfigureAwait(false);
+            // Every dequeued scheduled attempt consumes its interval. Retrying launch,
+            // configuration, or access failures on every 30-second scheduler tick can
+            // otherwise create an unbounded error loop on unattended machines.
+            _lastRuns[syncId] = DateTimeOffset.UtcNow;
+            await SaveScheduleStateAsync(CancellationToken.None).ConfigureAwait(false);
+            if (scheduled && !result.Succeeded)
+            {
+                LogOperationFailure(_logger, SyncKey(syncId), result.Error?.Code, result.Error?.Message);
+            }
+            return result;
+        }, token, () => coordinator.MarkQueued(mountId, syncId));
+    }
+
+    private bool Queue(
+        string key,
+        Func<CancellationToken, Task<OperationResult>> action,
+        CancellationToken token,
+        Action? onQueued = null)
+    {
+        if (_shutdownRequested)
+            return false;
+        var source = CancellationTokenSource.CreateLinkedTokenSource(token);
+        if (!_operations.TryAdd(key, source))
+        {
+            source.Dispose();
+            return false;
+        }
+        onQueued?.Invoke();
+        Track(RunAsync(key, source, action));
+        return true;
+    }
+
+    private async Task RunAsync(string key, CancellationTokenSource source, Func<CancellationToken, Task<OperationResult>> action)
+    {
+        try
+        {
+            await _slots.WaitAsync(source.Token).ConfigureAwait(false);
+            try
+            {
+                var result = await action(source.Token).ConfigureAwait(false);
+                if (!result.Succeeded && result.Error?.Code != "sync.cancelled")
+                {
+                    LogOperationFailure(_logger, key, result.Error?.Code, result.Error?.Message);
+                }
+            }
+            finally
+            {
+                _slots.Release();
+            }
+        }
+        catch (OperationCanceledException) when (source.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            LogOperationException(_logger, key, exception);
+        }
+        finally
+        {
+            if (_operations.TryGetValue(key, out var current) && ReferenceEquals(current, source))
+            {
+                _operations.TryRemove(key, out _);
+            }
+            source.Dispose();
+        }
+    }
+
+    private async Task<OperationResult> ReloadAsync(CancellationToken token)
+    {
+        await _reloadGate.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            return await ReloadCoreAsync(token).ConfigureAwait(false);
+        }
+        finally
+        {
+            _reloadGate.Release();
+        }
+    }
+
+    private async Task<OperationResult> ReloadCoreAsync(CancellationToken token)
+    {
+        if (_store is null)
+        {
+            return Result.Failure("host.not_ready", "The settings store is unavailable.");
+        }
+        var loaded = await _store.LoadAsync(token).ConfigureAwait(false);
+        if (!loaded.Succeeded || loaded.Value is null)
+        {
+            return Result.Failure(loaded.Error?.Code ?? "settings.load_failed", loaded.Error?.Message ?? "Settings could not be loaded.");
+        }
+        var definitions = new List<MountDefinition>();
+        foreach (var item in loaded.Value.Mounts)
+        {
+            var mapped = MountDefinitionMapper.ToDomain(item);
+            if (!mapped.Succeeded || mapped.Value is null)
+            {
+                return Result.Failure(mapped.Error?.Code ?? "mount.invalid", mapped.Error?.Message ?? "A mount is invalid.");
+            }
+            definitions.Add(mapped.Value);
+        }
+        var rclone = new RcloneRuntimeLocator(_paths).ExecutablePath;
+        var config = _paths.ConfigFile;
+        var changed = !string.Equals(rclone, _rclonePath, StringComparison.OrdinalIgnoreCase) || !string.Equals(config, _configPath, StringComparison.OrdinalIgnoreCase);
+        var definitionsChanged = _settings is not null &&
+            !string.Equals(
+                JsonSerializer.Serialize(_settings.Mounts),
+                JsonSerializer.Serialize(loaded.Value.Mounts),
+                StringComparison.Ordinal);
+        if (definitionsChanged && HasDefinitionSensitiveWork())
+        {
+            return Result.Failure(
+                "host.work_active",
+                "Wait for queued mount operations and active sync jobs to finish before changing definitions.");
+        }
+        if (changed && _mounts is not null)
+        {
+            if (HasWork())
+            {
+                return Result.Failure("host.restart_required", "Paths changed while work is active. Stop all work, then reload.");
+            }
+            await _mounts.DisposeAsync().ConfigureAwait(false);
+            _mounts = null;
+            _syncs?.Dispose();
+            _syncs = null;
+        }
+        _mounts ??= new(rclone, config, _paths, new MountTargetInventory());
+        var reconciled = await _mounts.ReconcileAsync(definitions, token).ConfigureAwait(false);
+        if (!reconciled.Succeeded)
+        {
+            return reconciled;
+        }
+        _definitions = definitions;
+        var currentJobIds = definitions
+            .SelectMany(definition => definition.SyncJobs)
+            .Select(job => job.Id)
+            .ToHashSet();
+        foreach (var obsoleteId in _lastRuns.Keys.Where(id => !currentJobIds.Contains(id)))
+        {
+            _lastRuns.TryRemove(obsoleteId, out _);
+        }
+        _syncs ??= new(rclone, config, _paths, () => _definitions);
+        _rclonePath = rclone;
+        _configPath = config;
+        var isFirstLoad = _settings is null;
+        _settings = loaded.Value;
+        if (isFirstLoad)
+        {
+            QueueEligibleAutoMounts(token);
+        }
+        return Result.Success();
+    }
+
+    private void QueueEligibleAutoMounts(CancellationToken token)
+    {
+        var mountCoordinator = _mounts;
+        if (mountCoordinator is null)
+            return;
+
+        var lifecycles = mountCoordinator.GetSnapshots()
+            .ToDictionary(snapshot => snapshot.MountId, snapshot => snapshot.Lifecycle);
+        foreach (var definition in _definitions)
+        {
+            if (!lifecycles.TryGetValue(definition.Id, out var lifecycle) ||
+                !definition.IsAutomaticStartEligible(lifecycle))
+                continue;
+
+            Queue(
+                MountKey(definition.Id),
+                operationToken => mountCoordinator.StartAsync(definition.Id, operationToken),
+                token,
+                () => mountCoordinator.MarkPending(definition.Id, stopping: false));
+        }
+    }
+
+    private bool HasWork() =>
+        !_operations.IsEmpty ||
+        (_mounts?.GetSnapshots().Any(snapshot => snapshot.Lifecycle is not MountLifecycle.Stopped and not MountLifecycle.Failed) ?? false) ||
+        (_syncs?.GetSnapshots().Any(snapshot => snapshot.Lifecycle == SyncLifecycle.Running) ?? false);
+
+    private bool HasDefinitionSensitiveWork() =>
+        !_operations.IsEmpty ||
+        (_syncs?.GetSnapshots().Any(snapshot => snapshot.Lifecycle == SyncLifecycle.Running) ?? false);
+
+    private async Task LoadScheduleStateAsync(CancellationToken token)
+    {
+        if (!File.Exists(StatePath))
+        {
+            return;
+        }
+        try
+        {
+            await using var stream = File.OpenRead(StatePath);
+            var state = await JsonSerializer.DeserializeAsync<Dictionary<Guid, DateTimeOffset>>(stream, cancellationToken: token).ConfigureAwait(false);
+            if (state is not null)
+            {
+                foreach (var pair in state)
+                {
+                    _lastRuns[new SyncJobId(pair.Key)] = pair.Value;
+                }
+            }
+        }
+        catch (Exception exception) when (exception is IOException or JsonException or UnauthorizedAccessException)
+        {
+            LogStateFailure(_logger, exception);
+        }
+    }
+
+    private async Task SaveScheduleStateAsync(CancellationToken token)
+    {
+        await _scheduleStateGate.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            _paths.EnsureCreated();
+            var temporary = StatePath + ".tmp";
+            await using (var stream = new FileStream(
+                temporary,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None,
+                4096,
+                FileOptions.Asynchronous))
+            {
+                var persistedRuns = _lastRuns.ToDictionary(pair => pair.Key.Value, pair => pair.Value);
+                await JsonSerializer.SerializeAsync(stream, persistedRuns, cancellationToken: token).ConfigureAwait(false);
+            }
+            File.Move(temporary, StatePath, true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            LogStateFailure(_logger, exception);
+        }
+        finally
+        {
+            _scheduleStateGate.Release();
+        }
+    }
+
+    private void Track(Task task)
+    {
+        var id = Interlocked.Increment(ref _taskId);
+        _tasks[id] = task;
+        _ = task.ContinueWith((_, state) =>
+        {
+            var taskState = ((ConcurrentDictionary<int, Task> Tasks, int Id))state!;
+            taskState.Tasks.TryRemove(taskState.Id, out Task? _);
+        }, (_tasks, id), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+    }
+
+    private HostResponse Status() => new(
+        true,
+        Mounts: _mounts?.GetSnapshots().Select(HostProtocol.ToStatus).ToArray() ?? [],
+        SyncJobs: _syncs?.GetSnapshots().Select(HostProtocol.ToStatus).ToArray() ?? [],
+        HostBaseDirectory: AppContext.BaseDirectory);
+    private static HostResponse Response(OperationResult result) => new(
+        result.Succeeded,
+        result.Error?.Code,
+        result.Error?.Message,
+        HostBaseDirectory: AppContext.BaseDirectory
+    );
+    private static string MountKey(MountId id) => $"mount:{id.Value:N}";
+    private static string SyncKey(SyncJobId id) => $"sync:{id.Value:N}";
+    private string StatePath => Path.Combine(_paths.Root, "scheduler-state.json");
+
+    [LoggerMessage(1001, LogLevel.Error, "Host initialization failed: {Code} {Message}")]
+    private static partial void LogInitializationFailure(ILogger logger, string? code, string? message);
+    [LoggerMessage(1002, LogLevel.Warning, "A host client request failed.")]
+    private static partial void LogClientFailure(ILogger logger, Exception exception);
+    [LoggerMessage(1003, LogLevel.Warning, "Operation {Operation} failed: {Code} {Message}")]
+    private static partial void LogOperationFailure(ILogger logger, string operation, string? code, string? message);
+    [LoggerMessage(1004, LogLevel.Error, "Operation {Operation} threw unexpectedly.")]
+    private static partial void LogOperationException(ILogger logger, string operation, Exception exception);
+    [LoggerMessage(1005, LogLevel.Warning, "Scheduler state I/O failed.")]
+    private static partial void LogStateFailure(ILogger logger, Exception exception);
+    [LoggerMessage(1006, LogLevel.Warning, "Timed out while draining {TaskCount} host operations during shutdown.")]
+    private static partial void LogDrainTimeout(ILogger logger, int taskCount);
+}

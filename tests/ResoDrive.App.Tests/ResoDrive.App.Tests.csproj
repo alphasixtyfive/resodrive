@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>ResoDrive.App.Tests</RootNamespace>
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ResoDrive.App\ResoDrive.App.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\src\ResoDrive.App\MainWindow.xaml" Link="Fixtures\MainWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\ResoDrive.App\Themes\Controls.xaml" Link="Fixtures\Controls.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\ResoDrive.App\WelcomeWindow.xaml" Link="Fixtures\WelcomeWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\ResoDrive.App\SetupWindow.xaml" Link="Fixtures\SetupWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\ResoDrive.App\AboutWindow.xaml" Link="Fixtures\AboutWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,668 @@
+<Window
+  x:Class="ResoDrive.App.MainWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="clr-namespace:ResoDrive.App"
+  Title="{x:Static local:ProductInfo.Name}"
+  Width="920"
+  Height="610"
+  MinWidth="720"
+  MinHeight="440"
+  WindowStartupLocation="CenterScreen"
+  Background="{StaticResource WindowBrush}"
+  Foreground="{StaticResource TextBrush}"
+>
+  <Window.Resources>
+    <Style x:Key="Title" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI" />
+      <Setter Property="FontSize" Value="22" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style x:Key="Subtitle" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+      <Setter Property="Margin" Value="0,3,0,0" />
+    </Style>
+    <Style x:Key="Rows" TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0,0,4,0" />
+      <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+      <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+      <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
+      <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True" />
+      <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
+      <Setter Property="ItemsPanel">
+        <Setter.Value>
+          <ItemsPanelTemplate>
+            <VirtualizingStackPanel />
+          </ItemsPanelTemplate>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="ItemContainerStyle">
+        <Setter.Value>
+          <Style TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+              <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                  <ContentPresenter />
+                </ControlTemplate>
+              </Setter.Value>
+            </Setter>
+          </Style>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="RowCard" TargetType="Border" BasedOn="{StaticResource Card}">
+      <Setter Property="MinHeight" Value="62" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style x:Key="RowStatusRail" TargetType="Border">
+      <Setter Property="Width" Value="3" />
+      <Setter Property="CornerRadius" Value="1.5,0,0,1.5" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
+    <Style x:Key="RowIcon" TargetType="Border">
+      <Setter Property="Width" Value="36" />
+      <Setter Property="Height" Value="36" />
+      <Setter Property="Background" Value="{StaticResource ControlBrush}" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style x:Key="RowIconGlyph" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextAlignment" Value="Center" />
+    </Style>
+    <Style x:Key="IconOnlyButton" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
+      <Setter Property="Width" Value="34" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+      <Setter Property="FontSize" Value="14" />
+    </Style>
+  </Window.Resources>
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition x:Name="NavColumn" Width="176" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+    <Border Background="{StaticResource NavBrush}" BorderBrush="#383838" BorderThickness="0,0,1,0">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="64" />
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel x:Name="BrandPanel" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,0">
+          <Image
+            Width="32"
+            Height="32"
+            Source="Assets/resodrive-mark.png"
+            Stretch="Uniform"
+            RenderOptions.BitmapScalingMode="HighQuality"
+            AutomationProperties.Name="{x:Static local:ProductInfo.Name}"
+          />
+          <TextBlock
+            x:Name="Brand"
+            Text="{x:Static local:ProductInfo.Name}"
+            FontSize="17"
+            FontWeight="SemiBold"
+            Margin="2,0,0,0"
+            VerticalAlignment="Center"
+          />
+        </StackPanel>
+        <StackPanel Grid.Row="1" Margin="0,7,0,0">
+          <RadioButton
+            x:Name="MountsNav"
+            Style="{StaticResource NavButton}"
+            GroupName="Navigation"
+            Tag="Mounts"
+            Click="Nav_Click"
+            AutomationProperties.Name="Drives page"
+          >
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Style="{StaticResource NavGlyph}" Text="&#xE8CE;" />
+              <TextBlock x:Name="MountsLabel" Text="Drives" VerticalAlignment="Center" />
+            </StackPanel>
+          </RadioButton>
+          <RadioButton
+            x:Name="JobsNav"
+            Style="{StaticResource NavButton}"
+            GroupName="Navigation"
+            Tag="Jobs"
+            Click="Nav_Click"
+            AutomationProperties.Name="Sync page"
+          >
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Style="{StaticResource NavGlyph}" Text="&#xE895;" />
+              <TextBlock x:Name="JobsLabel" Text="Sync" VerticalAlignment="Center" />
+            </StackPanel>
+          </RadioButton>
+          <RadioButton
+            x:Name="LogNav"
+            Style="{StaticResource NavButton}"
+            GroupName="Navigation"
+            Tag="Log"
+            Click="Nav_Click"
+              AutomationProperties.Name="Log page"
+          >
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Style="{StaticResource NavGlyph}" Text="&#xE8A5;" />
+              <TextBlock x:Name="LogLabel" Text="Log" VerticalAlignment="Center" />
+            </StackPanel>
+          </RadioButton>
+        </StackPanel>
+        <RadioButton
+          Grid.Row="2"
+          x:Name="SettingsNav"
+          Style="{StaticResource NavButton}"
+          GroupName="Navigation"
+          Tag="Settings"
+          Click="Nav_Click"
+          Margin="7,2,7,10"
+          AutomationProperties.Name="Settings page"
+        >
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource NavGlyph}" Text="&#xE713;" />
+            <TextBlock x:Name="SettingsLabel" Text="Settings" VerticalAlignment="Center" />
+          </StackPanel>
+        </RadioButton>
+      </Grid>
+    </Border>
+    <Grid Grid.Column="1" Margin="24,18,16,16" Background="{StaticResource WindowBrush}">
+      <Grid x:Name="MountsPage">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="60" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <StackPanel>
+            <TextBlock Style="{StaticResource Title}" Text="Drives" />
+            <TextBlock Style="{StaticResource Subtitle}" Text="{Binding MountSummary}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,4,0">
+            <Button
+              Style="{StaticResource IconOnlyButton}"
+              Margin="0,0,8,0"
+              Content="&#xE72C;"
+              ToolTip="Refresh"
+              Click="Refresh_Click"
+              AutomationProperties.Name="Refresh mount status"
+            />
+            <Button
+              x:Name="AddMountButton"
+              Style="{StaticResource AccentButton}"
+              Click="AddMount_Click"
+            >
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource InlineButtonGlyph}" Text="&#xE710;" />
+                <TextBlock Text="Add drive" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </Grid>
+        <ListBox Grid.Row="1" Style="{StaticResource Rows}" ItemsSource="{Binding Mounts}">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="{x:Type local:MountRow}">
+              <Border
+                Style="{StaticResource RowCard}"
+                ToolTip="{Binding DetailText}"
+                AutomationProperties.Name="{Binding DetailText}"
+              >
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3" />
+                    <ColumnDefinition Width="53" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <Border Style="{StaticResource RowStatusRail}" Background="{Binding StatusBrush}" />
+                  <Border Grid.Column="1" Style="{StaticResource RowIcon}">
+                    <TextBlock Style="{StaticResource RowIconGlyph}" Text="&#xE8CE;" />
+                  </Border>
+                  <Grid Grid.Column="2" VerticalAlignment="Center" Margin="8,0,16,0">
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock
+                      Text="{Binding Name}"
+                      FontWeight="SemiBold"
+                      FontSize="13"
+                      Padding="0"
+                      Margin="0"
+                      HorizontalAlignment="Left"
+                      TextAlignment="Left"
+                      TextTrimming="CharacterEllipsis"
+                    />
+                    <TextBlock Grid.Row="1" Text="{Binding LocationDisplay}" Foreground="{StaticResource MutedBrush}" FontSize="12" Padding="0" Margin="0,2,0,0" HorizontalAlignment="Left" TextAlignment="Left" MaxWidth="320" TextTrimming="CharacterEllipsis" ToolTip="{Binding LocationDisplay}" />
+                    <TextBlock Grid.Row="2" Text="{Binding StatusText}" Foreground="{Binding StatusBrush}" FontSize="11" Padding="0" Margin="0,3,0,0" HorizontalAlignment="Left" TextAlignment="Left" TextTrimming="CharacterEllipsis" ToolTip="{Binding StatusText}" Visibility="{Binding StatusVisibility}" />
+                  </Grid>
+                  <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <Button Style="{StaticResource IconOnlyButton}" Margin="0,0,6,0" Content="&#xE838;" ToolTip="Open in File Explorer" IsEnabled="{Binding CanOpen}" Click="OpenMount_Click" AutomationProperties.Name="{Binding OpenAccessibleName}" />
+                    <Button Style="{StaticResource IconOnlyButton}" Margin="0,0,6,0" Content="&#xE713;" ToolTip="Drive settings" Click="Options_Click" AutomationProperties.Name="{Binding OptionsAccessibleName}" />
+                    <Button Style="{StaticResource IconOnlyButton}" Margin="0,0,6,0" Content="&#xE946;" ToolTip="Error details" Visibility="{Binding ErrorVisibility}" Click="MountErrorDetails_Click" AutomationProperties.Name="View mount error details" />
+                    <Button Style="{StaticResource ButtonStyle}" MinWidth="102" Padding="10,0" IsEnabled="{Binding CanAct}" Click="MountAction_Click" ToolTip="{Binding ActionAccessibleName}" AutomationProperties.Name="{Binding ActionAccessibleName}">
+                      <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource InlineButtonGlyph}" Text="{Binding ActionGlyph}" />
+                        <TextBlock Text="{Binding ActionText}" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+      <Grid x:Name="JobsPage" Visibility="Collapsed">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="60" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid>
+          <StackPanel>
+            <TextBlock Style="{StaticResource Title}" Text="Sync" />
+            <TextBlock Style="{StaticResource Subtitle}" Text="{Binding JobSummary}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,4,0">
+            <Button Style="{StaticResource AccentButton}" Click="NewJob_Click">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource InlineButtonGlyph}" Text="&#xE710;" />
+                <TextBlock Text="New job" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </Grid>
+        <ListBox Grid.Row="1" Style="{StaticResource Rows}" ItemsSource="{Binding Jobs}">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="{x:Type local:SyncRow}">
+              <Border Style="{StaticResource RowCard}" MinHeight="58" ToolTip="{Binding DetailText}" AutomationProperties.Name="{Binding DetailText}">
+                <Grid>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="58" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3" />
+                    <ColumnDefinition Width="53" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <Border Grid.RowSpan="2" Style="{StaticResource RowStatusRail}" Background="{Binding ResultBrush}" />
+                  <Border Grid.Column="1" Style="{StaticResource RowIcon}" ToolTip="{Binding ModeLabel}" AutomationProperties.Name="{Binding ModeLabel}">
+                    <TextBlock Style="{StaticResource RowIconGlyph}" Text="{Binding DirectionGlyph}" />
+                  </Border>
+                  <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="8,0,14,0">
+                    <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                    <TextBlock Text="{Binding Route}" Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding Route}" />
+                  </StackPanel>
+                  <Grid
+                    Grid.Row="1"
+                    Grid.Column="2"
+                    Grid.ColumnSpan="2"
+                    Margin="8,0,12,0"
+                    Visibility="{Binding StatusVisibility}"
+                  >
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="1" />
+                      <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Border Background="{StaticResource BorderBrush}" Opacity="0.55" />
+                    <TextBlock
+                      Grid.Row="1"
+                      Margin="0,5,0,7"
+                      Text="{Binding StatusLine}"
+                      Foreground="{Binding ResultBrush}"
+                      FontSize="11"
+                      LineHeight="14"
+                      TextTrimming="CharacterEllipsis"
+                      ToolTip="{Binding StatusLine}"
+                    />
+                  </Grid>
+                  <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <Button Style="{StaticResource IconOnlyButton}" Margin="0,0,6,0" Content="&#xE70F;" ToolTip="Edit job" Click="JobOptions_Click" AutomationProperties.Name="{Binding OptionsAccessibleName}" />
+                    <Button Style="{StaticResource AccentButton}" Width="96" IsEnabled="{Binding CanAct}" Click="JobAction_Click" AutomationProperties.Name="{Binding ActionAccessibleName}">
+                      <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource InlineButtonGlyph}" Text="{Binding ActionGlyph}" />
+                        <TextBlock Text="{Binding ActionText}" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+      <Grid x:Name="LogPage" Visibility="Collapsed">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="60" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <StackPanel>
+            <TextBlock Style="{StaticResource Title}" Text="Log" />
+            <TextBlock Style="{StaticResource Subtitle}" Text="Recent events, newest first" />
+          </StackPanel>
+          <Button Grid.Column="1" Style="{StaticResource ButtonStyle}" VerticalAlignment="Top" Click="OpenLogs_Click">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Style="{StaticResource InlineButtonGlyph}" Text="&#xE8B7;" />
+              <TextBlock Text="Open logs" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+        </Grid>
+        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="0">
+          <ListBox Style="{StaticResource Rows}" ItemsSource="{Binding Log}">
+            <ListBox.ItemTemplate>
+              <DataTemplate DataType="{x:Type local:LogRow}">
+                <Border MinHeight="48" Padding="12,8" BorderBrush="#3D3D3D" BorderThickness="0,0,0,1">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="28" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="128" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock
+                    Text="{Binding Glyph}"
+                    FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                    Foreground="{Binding Brush}"
+                    FontSize="14"
+                    VerticalAlignment="Center"
+                  />
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="12" />
+                    <TextBlock
+                      Text="{Binding Detail}"
+                      Foreground="{StaticResource MutedBrush}"
+                      FontSize="12"
+                      Margin="0,3,0,0"
+                      TextTrimming="CharacterEllipsis"
+                      ToolTip="{Binding Detail}"
+                    />
+                  </StackPanel>
+                  <TextBlock
+                    Grid.Column="2"
+                    Text="{Binding Time}"
+                    Foreground="{StaticResource MutedBrush}"
+                    FontSize="11"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    ToolTip="{Binding Time}"
+                  />
+                </Grid>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Border>
+      </Grid>
+      <Grid x:Name="SettingsPage" Visibility="Collapsed">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="60" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <StackPanel>
+            <TextBlock Style="{StaticResource Title}" Text="Settings" />
+            <TextBlock Style="{StaticResource Subtitle}" Text="Application behavior and components" />
+          </StackPanel>
+          <Button
+            Grid.Column="1"
+            Style="{StaticResource ButtonStyle}"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Margin="0,0,4,0"
+            Click="OpenAbout_Click"
+          >
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Style="{StaticResource InlineButtonGlyph}" Text="&#xE946;" />
+              <TextBlock Text="About" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+        </Grid>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="0,0,4,0">
+            <Border Style="{StaticResource Card}" Padding="16,12" Margin="0,0,0,10">
+              <StackPanel>
+                <TextBlock Text="General" FontSize="15" FontWeight="SemiBold" />
+                <Grid MinHeight="36" Margin="0,8,0,0">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                  <TextBlock Text="Close window to the notification area" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,7,16,7" />
+                  <CheckBox
+                    x:Name="MinimizeToTrayBox"
+                    Grid.Column="1"
+                    Style="{StaticResource ToggleSwitch}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="Close window to the notification area"
+                    Click="SettingsToggle_Click"
+                  />
+                </Grid>
+                <Grid MinHeight="36">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                  <TextBlock Text="{x:Static local:ProductInfo.StartWithWindowsText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,7,16,7" />
+                  <CheckBox
+                    x:Name="StartWithWindowsBox"
+                    Grid.Column="1"
+                    Style="{StaticResource ToggleSwitch}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="{x:Static local:ProductInfo.StartWithWindowsText}"
+                    Click="SettingsToggle_Click"
+                  />
+                </Grid>
+                <Grid MinHeight="44" Margin="0,4,0,0">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                  <StackPanel VerticalAlignment="Center" Margin="0,5,16,5">
+                    <TextBlock Text="Connection profiles" />
+                    <TextBlock Text="Optional deployment presets for adding drives" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,2,0,0" />
+                  </StackPanel>
+                  <Button Grid.Column="1" Style="{StaticResource ButtonStyle}" VerticalAlignment="Center" Click="OpenProfilesFile_Click">
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Style="{StaticResource InlineButtonGlyph}" Text="&#xE70F;" />
+                      <TextBlock Text="Edit profiles" VerticalAlignment="Center" />
+                    </StackPanel>
+                  </Button>
+                </Grid>
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Card}" Padding="16">
+              <Grid>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Text="Components" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12" />
+                <Grid Grid.Row="1" MinHeight="48">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="22" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+                  <Path Style="{StaticResource StatusIcon}" Data="M10,2 A8,8 0 1 1 2,10 A8,8 0 0 1 10,2 M10,5 L10,11 L14,11" />
+                  <TextBlock Grid.Column="1" Text="ResoDrive" FontWeight="SemiBold" Margin="0,0,16,0" />
+                  <TextBlock
+                    x:Name="ApplicationUpdateStatusText"
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Foreground="{StaticResource MutedBrush}"
+                    TextWrapping="Wrap"
+                    ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"
+                    Margin="0,3,16,0"
+                  />
+                  <StackPanel Grid.RowSpan="2" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button
+                      x:Name="CheckApplicationUpdateButton"
+                      Style="{StaticResource ButtonStyle}"
+                      Click="CheckApplicationUpdate_Click"
+                    >
+                      <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource InlineButtonGlyph}" Text="&#xE72C;" />
+                        <TextBlock Text="Check" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                    <Button
+                      x:Name="GetApplicationUpdateButton"
+                      Style="{StaticResource AccentButton}"
+                      IsEnabled="False"
+                      Margin="8,0,0,0"
+                      Click="OpenApplicationUpdate_Click"
+                    >
+                      <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource InlineButtonGlyph}" Text="&#xE896;" />
+                        <TextBlock Text="Get update" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+                <Grid Grid.Row="2" MinHeight="50" Margin="0,10,0,0">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="22" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+                  <Path
+                    x:Name="RcloneStatusIcon"
+                    Style="{StaticResource StatusIcon}"
+                  />
+                  <TextBlock Grid.Column="1" Text="rclone" FontWeight="SemiBold" Margin="0,0,16,0" />
+                  <TextBlock
+                    x:Name="RcloneStatusText"
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Text="Checking rclone…"
+                    Foreground="{StaticResource MutedBrush}"
+                    TextWrapping="Wrap"
+                    ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"
+                    Margin="0,3,16,0"
+                  />
+                  <TextBlock
+                    x:Name="RcloneUpdateStatusText"
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    Text="Installed version not checked"
+                    Foreground="{StaticResource MutedBrush}"
+                    FontSize="11"
+                    TextWrapping="Wrap"
+                    ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"
+                    Margin="0,2,16,0"
+                  />
+                  <ProgressBar
+                    x:Name="RcloneDownloadProgress"
+                    Grid.Row="3"
+                    Grid.Column="1"
+                    Grid.ColumnSpan="2"
+                    Style="{StaticResource SlimProgressBar}"
+                    Margin="0,8,0,0"
+                    Visibility="Collapsed"
+                    Value="0"
+                  />
+                  <StackPanel Grid.RowSpan="3" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button
+                      x:Name="CheckRcloneUpdateButton"
+                      Style="{StaticResource ButtonStyle}"
+                      Click="CheckRcloneUpdate_Click"
+                    >
+                      <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource InlineButtonGlyph}" Text="&#xE72C;" />
+                        <TextBlock Text="Check" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                    <Button
+                      x:Name="UpdateRcloneButton"
+                      Style="{StaticResource AccentButton}"
+                      IsEnabled="False"
+                      Margin="8,0,0,0"
+                      Click="UpdateRclone_Click"
+                    >
+                      <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource InlineButtonGlyph}" Text="&#xE896;" />
+                        <TextBlock x:Name="UpdateRcloneButtonText" Text="Update" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+                <Border Grid.Row="3" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,10,0,0">
+                  <Grid MinHeight="42">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="22" />
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="112" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Path
+                      x:Name="WinFspStatusIcon"
+                      Style="{StaticResource StatusIcon}"
+                    />
+                    <TextBlock Grid.Column="1" Text="WinFsp" FontWeight="SemiBold" Margin="0,0,16,0" />
+                    <TextBlock
+                      x:Name="WinFspStatusText"
+                      Grid.Row="1"
+                      Grid.Column="1"
+                      Text="Checking WinFsp…"
+                      Foreground="{StaticResource MutedBrush}"
+                      TextWrapping="Wrap"
+                      Margin="0,3,16,0"
+                    />
+                    <Button
+                      x:Name="WinFspReleasesButton"
+                      Grid.RowSpan="2"
+                      Grid.Column="2"
+                      Style="{StaticResource ButtonStyle}"
+                      Visibility="Hidden"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Center"
+                      Click="OpenWinFspReleases_Click"
+                    >
+                      <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource InlineButtonGlyph}" Text="&#xE896;" />
+                        <TextBlock Text="Get WinFsp" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                  </Grid>
+                </Border>
+              </Grid>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </Grid>
+  </Grid>
+</Window>
