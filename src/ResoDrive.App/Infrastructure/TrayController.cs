@@ -116,7 +116,18 @@ internal sealed class TrayController : IDisposable
         if (_disposed || _dispatcher.HasShutdownStarted) return;
         try
         {
-            _dispatcher.BeginInvoke(() => { if (!_disposed) action(); });
+            _dispatcher.BeginInvoke(() =>
+            {
+                if (_disposed) return;
+                try
+                {
+                    action();
+                }
+                catch (Exception exception)
+                {
+                    ReportError(exception);
+                }
+            });
         }
         catch (InvalidOperationException)
         {
@@ -174,10 +185,23 @@ internal sealed class TrayController : IDisposable
         catch (OperationCanceledException) { }
         catch (Exception exception)
         {
-            _reportError?.Invoke(exception);
+            ReportError(exception);
             if (!_disposed)
                 ShowResult(TrayActionResult.Failure("Action failed", $"The operation could not be completed. Open {ProductInfo.Name} to see details."));
         }
+    }
+
+    private void ReportError(Exception exception)
+    {
+        try
+        {
+            _reportError?.Invoke(exception);
+        }
+        catch (Exception reportingException)
+        {
+            UiDiagnosticLog.Current.Exception("tray.error_reporting_failed", reportingException);
+        }
+        UiDiagnosticLog.Current.Exception("tray.action_failed", exception);
     }
 
     private static string Truncate(string value, int maximumLength) => value.Length <= maximumLength

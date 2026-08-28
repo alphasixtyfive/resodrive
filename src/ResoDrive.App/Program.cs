@@ -73,9 +73,29 @@ public static class Program
             return 0;
         }
 
-        var application = new App();
-        application.InitializeComponent();
-        return application.Run();
+        try
+        {
+            var application = new App();
+            application.InitializeComponent();
+            return application.Run();
+        }
+        catch (Exception exception)
+        {
+            var errorId = UiDiagnosticLog.Current.Exception("startup.fatal", exception);
+            try
+            {
+                System.Windows.MessageBox.Show(
+                    $"{ProductInfo.Name} could not start.\n\n{exception.Message}\n\nError ID: {errorId}",
+                    $"{ProductInfo.Name} startup error",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
+            }
+            catch (Exception dialogException)
+            {
+                UiDiagnosticLog.Current.Exception("startup.error_dialog_failed", dialogException);
+            }
+            return 1;
+        }
     }
 
     internal static void TryStartHostEarly()

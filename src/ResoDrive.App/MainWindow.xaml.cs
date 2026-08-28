@@ -2385,13 +2385,14 @@ public partial class MainWindow : WpfWindow
 
     private void RestoreWindow()
     {
-        ShowInTaskbar = true;
+        var restoredState = _windowStateBeforeMinimize == WindowState.Maximized
+            ? WindowState.Maximized
+            : WindowState.Normal;
+        WindowRestoration.PrepareForShow(this);
         Show();
         var handle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
         WindowAppearance.Restore(handle);
-        WindowState = _windowStateBeforeMinimize == WindowState.Maximized
-            ? WindowState.Maximized
-            : WindowState.Normal;
+        WindowState = restoredState;
         Activate();
         WindowAppearance.BringToForeground(handle);
         Focus();

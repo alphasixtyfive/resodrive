@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1] - 2026-08-28
+
+- Prevent a crash when restoring a maximized window after background startup.
+- Contain notification-area callback failures so a single UI action cannot
+  terminate the application.
+- Log fatal early-startup failures with an error ID and show a useful error
+  message instead of exiting silently.
+
 ## [0.3.0] - 2026-08-28
 
 First public preview of the cleaned ResoDrive codebase.
@@ -14,4 +22,5 @@ First public preview of the cleaned ResoDrive codebase.
 - Install through a small setup bundle that downloads the .NET Desktop Runtime
   only when it is missing.
 
+[0.3.1]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.1
 [0.3.0]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.0

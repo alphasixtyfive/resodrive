@@ -1,14 +1,10 @@
-ResoDrive 0.3 is a focused public preview.
+ResoDrive 0.3.1 fixes a crash that could occur when reopening a maximized window
+after ResoDrive started in the background.
 
-It mounts Nextcloud, WebDAV, and SFTP storage as Windows drives, runs copy and
-mirror jobs, and keeps active work running when the management window is closed.
-Optional sign-in startup now uses Windows Task Scheduler without an artificial
-delay.
+Notification-area actions are now isolated so an unexpected failure in one UI
+callback cannot terminate the application. Fatal failures during very early
+startup are also written to the diagnostic log and displayed with an error ID
+instead of looking like a silent exit.
 
-Mount recovery uses bounded retry intervals for slow or intermittent links.
-Application and rclone downloads can continue after a dropped connection and are
-verified before use.
-
-The normal download is `ResoDrive-Setup.exe`. It keeps updates small by using the
-shared .NET 10 Desktop Runtime and downloads that prerequisite only when required.
-WinFsp remains necessary only for drive mounting.
+The normal download is `ResoDrive-Setup.exe`. Existing settings, credentials,
+mounts, and sync jobs are preserved during the upgrade.
