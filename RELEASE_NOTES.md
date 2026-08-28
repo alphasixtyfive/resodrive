@@ -1,15 +1,15 @@
-ResoDrive 0.3.3 fixes application updates that could stop with Windows Installer
-code 1603 when the optional graceful-shutdown preparation returned an error.
-Preparation is now best-effort; the installer always continues to a hidden,
-path-scoped fallback that stops only the installed ResoDrive processes and waits
-for them to exit before replacing files. An already-stopped application is now
-handled as a successful no-op instead of another installer error.
+ResoDrive 0.3.4 fixes settings changes being rejected just because a different
+drive was mounted. Each change is now checked against the drive it actually
+affects, so unrelated mounts stay connected.
 
-Failed updates now include the exact installer-log path in their diagnostic
-message.
+When a mounted drive's connection settings need to change, ResoDrive explains
+that the drive will briefly disconnect and asks before continuing. If approved,
+the affected drive reconnects automatically. Running or queued sync work is
+still protected and will never be interrupted to apply settings.
 
-Fixed header and footer buttons now stay aligned with their scrollable content
-when a vertical scrollbar appears on Drives, Sync, Settings, setup, or an editor.
+This release also keeps the real mount states visible when a settings change is
+rejected, instead of briefly showing every drive as unmounted, and fixes a race
+that could prevent an active drive from being deleted cleanly.
 
 The normal download is `ResoDrive-Setup.exe`. Existing settings, credentials,
 mounts, and sync jobs are preserved during the upgrade.

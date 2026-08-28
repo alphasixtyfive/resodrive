@@ -215,7 +215,7 @@ public sealed partial class Worker : BackgroundService
         {
             if (command is "reload" or "activate-runtime")
             {
-                var reloaded = await ReloadCoreAsync(token).ConfigureAwait(false);
+                var reloaded = await ReloadCoreAsync(token, request.Confirmed).ConfigureAwait(false);
                 if (!reloaded.Succeeded || command == "reload")
                     return Response(reloaded);
 
@@ -458,7 +458,9 @@ public sealed partial class Worker : BackgroundService
         }
     }
 
-    private async Task<OperationResult> ReloadCoreAsync(CancellationToken token)
+    private async Task<OperationResult> ReloadCoreAsync(
+        CancellationToken token,
+        bool restartChangedMounts = false)
     {
         if (_store is null)
         {
@@ -487,11 +489,18 @@ public sealed partial class Worker : BackgroundService
                 JsonSerializer.Serialize(_settings.Mounts),
                 JsonSerializer.Serialize(loaded.Value.Mounts),
                 StringComparison.Ordinal);
-        if (definitionsChanged && HasWork())
+        var definitionWork = AnalyzeDefinitionWork(loaded.Value);
+        if (definitionsChanged && definitionWork.HasBlockingWork)
         {
             return Result.Failure(
                 "host.work_active",
-                "Unmount all drives and wait for queued operations and active sync jobs before changing definitions.");
+                "Unmount the drives being changed and wait for their queued operations and active sync jobs.");
+        }
+        if (definitionsChanged && definitionWork.ActiveChangedMountIds.Count != 0 && !restartChangedMounts)
+        {
+            return Result.Failure(
+                "host.mount_restart_required",
+                "The mounted drives being changed must briefly disconnect before the settings can be activated.");
         }
         if (changed && _mounts is not null)
         {
@@ -505,12 +514,29 @@ public sealed partial class Worker : BackgroundService
             _syncs = null;
         }
         _mounts ??= new(rclone, config, _paths, new MountTargetInventory());
-        var reconciled = await _mounts.ReconcileAsync(definitions, token).ConfigureAwait(false);
+        var mountCoordinator = _mounts;
+        var reconciled = await mountCoordinator.ReconcileAsync(definitions, token).ConfigureAwait(false);
         if (!reconciled.Succeeded)
         {
             return reconciled;
         }
         _definitions = definitions;
+        if (restartChangedMounts && definitionWork.ActiveChangedMountIds.Count != 0)
+        {
+            var enabledIncomingIds = definitions
+                .Where(definition => definition.Enabled)
+                .Select(definition => definition.Id.Value)
+                .ToHashSet();
+            foreach (var id in definitionWork.ActiveChangedMountIds.Where(enabledIncomingIds.Contains))
+            {
+                var mountId = new MountId(id);
+                Queue(
+                    MountKey(mountId),
+                    operationToken => mountCoordinator.StartAsync(mountId, operationToken),
+                    token,
+                    () => mountCoordinator.MarkPending(mountId, stopping: false));
+            }
+        }
         var currentJobIds = definitions
             .SelectMany(definition => definition.SyncJobs)
             .Select(job => job.Id)
@@ -557,6 +583,26 @@ public sealed partial class Worker : BackgroundService
         !_operations.IsEmpty ||
         (_mounts?.GetSnapshots().Any(snapshot => snapshot.Lifecycle is not MountLifecycle.Stopped and not MountLifecycle.Failed) ?? false) ||
         (_syncs?.GetSnapshots().Any(snapshot => snapshot.Lifecycle == SyncLifecycle.Running) ?? false);
+
+    private DefinitionWorkAnalysis AnalyzeDefinitionWork(ManagerSettings incoming)
+    {
+        if (_settings is null)
+            return new(new HashSet<Guid>(), new HashSet<Guid>(), false);
+
+        var activeMountIds = _mounts?.GetSnapshots()
+            .Where(snapshot => snapshot.Lifecycle is not MountLifecycle.Stopped and not MountLifecycle.Failed)
+            .Select(snapshot => snapshot.MountId.Value) ?? [];
+        var activeSyncIds = _syncs?.GetSnapshots()
+            .Where(snapshot => snapshot.Lifecycle == SyncLifecycle.Running)
+            .Select(snapshot => snapshot.JobId.Value) ?? [];
+
+        return DefinitionWorkConflict.Analyze(
+            _settings.Mounts,
+            incoming.Mounts,
+            activeMountIds,
+            activeSyncIds,
+            _operations.Keys);
+    }
 
     private async Task LoadScheduleStateAsync(CancellationToken token)
     {

@@ -715,6 +715,23 @@ public partial class MainWindow : WpfWindow
         }
         _settings = result.Value;
         var reload = await HostClient.SendAsync(new HostRequest("reload"));
+        var restartDeclined = false;
+        if (!reload.Succeeded &&
+            reload.ErrorCode?.Equals("host.mount_restart_required", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            if (WpfMessageBox.Confirm(
+                    this,
+                    "Applying these changes will briefly disconnect the affected mounted drives. Drives that remain enabled will reconnect automatically. Continue?",
+                    "Reconnect affected drives?",
+                    "Apply and reconnect"))
+            {
+                reload = await HostClient.SendAsync(new HostRequest("reload", Confirmed: true));
+            }
+            else
+            {
+                restartDeclined = true;
+            }
+        }
         if (!reload.Succeeded)
         {
             var rollback = await _store.SaveAsync(previousSettings, _settings.Revision);
@@ -723,16 +740,19 @@ public partial class MainWindow : WpfWindow
                 _settings = rollback.Value;
                 await HostClient.SendAsync(new HostRequest("reload"));
             }
-            ShowError(
-                "Settings were not activated",
-                rollback.Succeeded
-                    ? $"{reload.ErrorMessage ?? "The background host rejected the settings."}\n\nThe previous settings were restored."
-                    : $"{reload.ErrorMessage ?? "The background host rejected the settings."}\n\nThe previous settings could not be restored automatically."
-            );
+            if (!restartDeclined)
+            {
+                ShowError(
+                    "Settings were not activated",
+                    rollback.Succeeded
+                        ? $"{reload.ErrorMessage ?? "The background host rejected the settings."}\n\nThe previous settings were restored."
+                        : $"{reload.ErrorMessage ?? "The background host rejected the settings."}\n\nThe previous settings could not be restored automatically."
+                );
+            }
         }
-        var status = reload.Succeeded
-            ? await HostClient.SendAsync(new HostRequest("status"))
-            : reload;
+        // A failed reload response contains no mount or sync snapshots. Query the host
+        // again after rollback so the UI does not briefly present every drive as stopped.
+        var status = await HostClient.SendAsync(new HostRequest("status"));
         _model.Load(
             _settings,
             status.Succeeded ? status.Mounts : null,
@@ -1816,11 +1836,16 @@ public partial class MainWindow : WpfWindow
                         new HostRequest("reload"),
                         _lifetimeCancellation.Token);
                 }
+                var rollbackStatus = rollbackReload?.Succeeded == true
+                    ? await HostClient.SendAsync(
+                        new HostRequest("status"),
+                        _lifetimeCancellation.Token)
+                    : rollbackReload;
                 LoadSettingsControls();
                 _model.Load(
                     _settings,
-                    rollbackReload?.Succeeded == true ? rollbackReload.Mounts : null,
-                    rollbackReload?.Succeeded == true ? rollbackReload.SyncJobs : null);
+                    rollbackStatus?.Succeeded == true ? rollbackStatus.Mounts : null,
+                    rollbackStatus?.Succeeded == true ? rollbackStatus.SyncJobs : null);
                 UpdateTrayStatus();
                 ShowError(
                     "Settings were not activated",
@@ -2004,18 +2029,6 @@ public partial class MainWindow : WpfWindow
         };
         if (editor.ShowDialog() != true)
             return;
-        if (editor.DeleteRequested && row.ShouldStop)
-        {
-            var stopped = await HostClient.SendAsync(new HostRequest("stop", row.Id));
-            if (!stopped.Succeeded)
-            {
-                ShowError(
-                    "Mount was not deleted",
-                    stopped.ErrorMessage ?? "The mount could not be stopped safely."
-                );
-                return;
-            }
-        }
         var mounts = editor.DeleteRequested
             ? _settings.Mounts.Where(mount => mount.Id != row.Id).ToArray()
             : _settings

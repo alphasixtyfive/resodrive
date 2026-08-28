@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.4] - 2026-08-28
+
+- Allow settings for an unmounted drive to be saved while unrelated drives remain mounted.
+- Ask before briefly reconnecting a mounted drive whose connection settings changed.
+- Keep unrelated mounts running and never interrupt an active or queued sync to apply settings.
+- Preserve the real drive states after a rejected settings change instead of briefly showing every drive as unmounted.
+- Remove a race that could prevent a mounted drive from being deleted cleanly.
+
 ## [0.3.3] - 2026-08-28
 
 - Do not abort an upgrade when optional graceful-shutdown preparation fails.
@@ -37,6 +45,7 @@ First public preview of the cleaned ResoDrive codebase.
 - Install through a small setup bundle that downloads the .NET Desktop Runtime
   only when it is missing.
 
+[0.3.4]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.4
 [0.3.3]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.3
 [0.3.2]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.2
 [0.3.1]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.1
