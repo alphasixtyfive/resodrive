@@ -1,10 +1,10 @@
-ResoDrive 0.3.1 fixes a crash that could occur when reopening a maximized window
-after ResoDrive started in the background.
+ResoDrive 0.3.2 fixes Start with Windows registration on systems where Windows
+Task Scheduler normalizes the saved user identity and default privilege fields.
+ResoDrive now recognizes the normalized task as its own instead of removing it
+during post-registration verification.
 
-Notification-area actions are now isolated so an unexpected failure in one UI
-callback cannot terminate the application. Fatal failures during very early
-startup are also written to the diagnostic log and displayed with an error ID
-instead of looking like a silent exit.
+Installer upgrades no longer open PowerShell windows while stopping the running
+application.
 
 The normal download is `ResoDrive-Setup.exe`. Existing settings, credentials,
 mounts, and sync jobs are preserved during the upgrade.

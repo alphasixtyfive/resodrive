@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.2] - 2026-08-28
+
+- Keep the per-user startup task registered when Windows normalizes its saved
+  user identity and default privilege fields.
+- Avoid visible PowerShell windows while an installer upgrade stops ResoDrive.
+
 ## [0.3.1] - 2026-08-28
 
 - Prevent a crash when restoring a maximized window after background startup.
@@ -22,5 +28,6 @@ First public preview of the cleaned ResoDrive codebase.
 - Install through a small setup bundle that downloads the .NET Desktop Runtime
   only when it is missing.
 
+[0.3.2]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.2
 [0.3.1]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.1
 [0.3.0]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.0

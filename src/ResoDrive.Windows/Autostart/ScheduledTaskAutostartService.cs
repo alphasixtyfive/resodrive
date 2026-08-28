@@ -358,14 +358,38 @@ internal static class ScheduledTaskDefinition
             var trigger = triggers[0];
             var action = actions[0];
             return string.Equals(description, ScheduledTaskAutostartService.TaskDescription, StringComparison.Ordinal) &&
-                string.Equals(principal?.Element(ns + "UserId")?.Value, userId, StringComparison.OrdinalIgnoreCase) &&
+                IsSameUser(principal?.Element(ns + "UserId")?.Value, userId) &&
                 string.Equals(principal?.Element(ns + "LogonType")?.Value, "InteractiveToken", StringComparison.Ordinal) &&
-                string.Equals(principal?.Element(ns + "RunLevel")?.Value, "LeastPrivilege", StringComparison.Ordinal) &&
-                string.Equals(trigger?.Element(ns + "UserId")?.Value, userId, StringComparison.OrdinalIgnoreCase) &&
+                IsLeastPrivilege(principal?.Element(ns + "RunLevel")?.Value) &&
+                IsSameUser(trigger?.Element(ns + "UserId")?.Value, userId) &&
                 string.Equals(action?.Element(ns + "Command")?.Value, Path.GetFullPath(applicationPath), StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(action?.Element(ns + "Arguments")?.Value, AutostartCommand.BackgroundArgument, StringComparison.Ordinal);
         }
         catch (Exception exception) when (exception is System.Xml.XmlException or InvalidOperationException or ArgumentException)
+        {
+            return false;
+        }
+    }
+
+    private static bool IsLeastPrivilege(string? runLevel) =>
+        string.IsNullOrEmpty(runLevel) ||
+        string.Equals(runLevel, "LeastPrivilege", StringComparison.Ordinal);
+
+    private static bool IsSameUser(string? candidate, string expected)
+    {
+        if (string.Equals(candidate, expected, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (string.IsNullOrWhiteSpace(candidate))
+            return false;
+
+        try
+        {
+            var expectedSid = new SecurityIdentifier(expected);
+            var candidateSid = new NTAccount(candidate)
+                .Translate(typeof(SecurityIdentifier)) as SecurityIdentifier;
+            return candidateSid is not null && expectedSid.Equals(candidateSid);
+        }
+        catch (SystemException)
         {
             return false;
         }

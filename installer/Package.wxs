@@ -89,8 +89,8 @@
     <!-- Ask the installed app to drain managed work before stopping its UI process. -->
     <CustomAction
       Id="PrepareInstalledResoDriveForUpgrade"
-      Directory="INSTALLFOLDER"
-      ExeCommand="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoP -NonI -ExecutionPolicy Bypass -Command &quot;$p=Join-Path (pwd) '$(var.ResoDriveExecutableName)';if(Test-Path -LiteralPath $p){&amp; $p --prepare-update;exit $LASTEXITCODE};exit 0&quot;"
+      FileRef="ResoDriveExecutableFile"
+      ExeCommand="--prepare-update"
       Execute="immediate"
       Return="check"
       Impersonate="yes"
@@ -98,7 +98,7 @@
     <CustomAction
       Id="StopResoDriveForUpgrade"
       Directory="INSTALLFOLDER"
-      ExeCommand="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoP -NonI -Command &quot;$p=(pwd).Path+'\resodrive.exe';gps resodrive -ea 0|? Path -eq $p|kill -Force -ea Stop&quot;"
+      ExeCommand="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoP -NonI -WindowStyle Hidden -Command &quot;$p=(pwd).Path+'\resodrive.exe';gps resodrive -ea 0|? Path -eq $p|kill -Force -ea Stop&quot;"
       Execute="immediate"
       Return="check"
       Impersonate="no"

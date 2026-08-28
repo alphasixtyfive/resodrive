@@ -1,3 +1,4 @@
+using System.Security.Principal;
 using System.Xml.Linq;
 using ResoDrive.Windows;
 
@@ -72,6 +73,26 @@ public sealed class ScheduledTaskAutostartServiceTests
             new XElement(ns + "Exec", new XElement(ns + "Command", "malicious.exe")));
 
         Assert.False(ScheduledTaskDefinition.IsOwned(document.ToString(), _applicationPath, UserId));
+    }
+
+    [Fact]
+    public void Definition_OwnershipAcceptsTaskSchedulerNormalizedIdentityAndRunLevel()
+    {
+        var identity = WindowsIdentity.GetCurrent();
+        var sid = Assert.IsType<SecurityIdentifier>(identity.User).Value;
+        var account = Assert.IsType<NTAccount>(
+            identity.User.Translate(typeof(NTAccount))).Value;
+        var document = XDocument.Parse(ScheduledTaskDefinition.CreateXml(_applicationPath, sid));
+        var root = document.Root!;
+        var ns = root.Name.Namespace;
+        root.Element(ns + "Triggers")!
+            .Element(ns + "LogonTrigger")!
+            .Element(ns + "UserId")!.Value = account;
+        root.Element(ns + "Principals")!
+            .Element(ns + "Principal")!
+            .Element(ns + "RunLevel")!.Remove();
+
+        Assert.True(ScheduledTaskDefinition.IsOwned(document.ToString(), _applicationPath, sid));
     }
 
     [Fact]
