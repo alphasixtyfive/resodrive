@@ -45,6 +45,28 @@ public sealed class MainWindowMarkupTests
     }
 
     [Fact]
+    public void DriveAndSyncRowsUseTheSameSettingsActionTreatment()
+    {
+        var document = Load("MainWindow.xaml");
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+
+        var settingsButtons = document.Descendants(presentation + "Button")
+            .Where(button => (string?)button.Attribute("Click") is "Options_Click" or "JobOptions_Click")
+            .ToArray();
+
+        Assert.Equal(2, settingsButtons.Length);
+        Assert.All(settingsButtons, button =>
+        {
+            Assert.Equal("{StaticResource IconOnlyButton}", (string?)button.Attribute("Style"));
+            Assert.Equal("\uE713", (string?)button.Attribute("Content"));
+            Assert.Equal("{Binding OptionsAccessibleName}",
+                (string?)button.Attribute("AutomationProperties.Name"));
+        });
+        Assert.Equal("Drive settings", (string?)settingsButtons[0].Attribute("ToolTip"));
+        Assert.Equal("Sync settings", (string?)settingsButtons[1].Attribute("ToolTip"));
+    }
+
+    [Fact]
     public void StatusRailRadiusFitsItsThreePixelWidth()
     {
         var document = Load("Controls.xaml");

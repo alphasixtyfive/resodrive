@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.3.5] - 2026-08-28
+
+- Use the same settings gear for drives and sync jobs, with clearer tooltips and screen-reader labels.
+
 ## [0.3.4] - 2026-08-28
 
 - Allow settings for an unmounted drive to be saved while unrelated drives remain mounted.
@@ -45,6 +49,7 @@ First public preview of the cleaned ResoDrive codebase.
 - Install through a small setup bundle that downloads the .NET Desktop Runtime
   only when it is missing.
 
+[0.3.5]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.5
 [0.3.4]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.4
 [0.3.3]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.3
 [0.3.2]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.2

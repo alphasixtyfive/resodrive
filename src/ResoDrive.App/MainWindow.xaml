@@ -374,7 +374,7 @@
                     />
                   </Grid>
                   <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
-                    <Button Style="{StaticResource IconOnlyButton}" Margin="0,0,6,0" Content="&#xE70F;" ToolTip="Edit job" Click="JobOptions_Click" AutomationProperties.Name="{Binding OptionsAccessibleName}" />
+                    <Button Style="{StaticResource IconOnlyButton}" Margin="0,0,6,0" Content="&#xE713;" ToolTip="Sync settings" Click="JobOptions_Click" AutomationProperties.Name="{Binding OptionsAccessibleName}" />
                     <Button Style="{StaticResource AccentButton}" Width="96" IsEnabled="{Binding CanAct}" Click="JobAction_Click" AutomationProperties.Name="{Binding ActionAccessibleName}">
                       <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource InlineButtonGlyph}" Text="{Binding ActionGlyph}" />

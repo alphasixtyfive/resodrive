@@ -430,7 +430,7 @@ public sealed class SyncRow : NotifyBase
             SyncLifecycle.Queued or SyncLifecycle.Running => StatusPalette.Info,
             _ => StatusPalette.Muted,
         };
-    public string OptionsAccessibleName => $"Edit {Name}";
+    public string OptionsAccessibleName => $"Open settings for {Name}";
     public string ActionAccessibleName => $"{ActionText} {Name}";
 
     public void ApplyStatus(HostSyncStatus? status)
