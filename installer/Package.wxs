@@ -92,13 +92,13 @@
       FileRef="ResoDriveExecutableFile"
       ExeCommand="--prepare-update"
       Execute="immediate"
-      Return="check"
+      Return="ignore"
       Impersonate="yes"
     />
     <CustomAction
       Id="StopResoDriveForUpgrade"
       Directory="INSTALLFOLDER"
-      ExeCommand="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoP -NonI -WindowStyle Hidden -Command &quot;$p=(pwd).Path+'\resodrive.exe';gps resodrive -ea 0|? Path -eq $p|kill -Force -ea Stop&quot;"
+      ExeCommand="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoP -NonI -WindowStyle Hidden -Command &quot;$p=(pwd).Path+'\resodrive.exe';gps resodrive -ea 0|? Path -eq $p|%{kill $_ -Force -ea Stop;$_.WaitForExit()};exit 0&quot;"
       Execute="immediate"
       Return="check"
       Impersonate="no"

@@ -234,6 +234,11 @@ internal static class ApplicationUpdateHandoff
                     cancellationToken)
                 .ConfigureAwait(false);
             (status, message) = ClassifyInstallerExitCode(installerExitCode.Value);
+            if (status == "failed")
+            {
+                message += " See the installer log at " +
+                    Path.ChangeExtension(request.InstallerPath, ".msi.log") + ".";
+            }
         }
         catch (Win32Exception exception) when (exception.NativeErrorCode == ErrorCancelled)
         {

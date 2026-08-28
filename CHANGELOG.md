@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.3] - 2026-08-28
+
+- Do not abort an upgrade when optional graceful-shutdown preparation fails.
+- Wait for path-matched installed processes to exit before replacing files.
+- Treat an already-stopped application as a successful installer no-op.
+- Include the MSI log path in failed application-update diagnostics.
+- Keep fixed header and footer actions aligned with scrollable content whenever
+  a vertical scrollbar appears across the main pages and editor windows.
+
 ## [0.3.2] - 2026-08-28
 
 - Keep the per-user startup task registered when Windows normalizes its saved
@@ -28,6 +37,7 @@ First public preview of the cleaned ResoDrive codebase.
 - Install through a small setup bundle that downloads the .NET Desktop Runtime
   only when it is missing.
 
+[0.3.3]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.3
 [0.3.2]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.2
 [0.3.1]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.1
 [0.3.0]: https://github.com/alphasixtyfive/resodrive/releases/tag/v0.3.0

@@ -3,6 +3,7 @@
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:local="clr-namespace:ResoDrive.App"
+  xmlns:controls="clr-namespace:ResoDrive.App.Controls"
   Title="Add drive"
   Width="660"
   Height="690"
@@ -50,6 +51,7 @@
          hidden at the normal window size and prevents nested scrollbars when
          profiles are added or the available work area is unusually small. -->
     <ScrollViewer
+      x:Name="SetupScrollViewer"
       Grid.Row="1"
       VerticalScrollBarVisibility="Auto"
       HorizontalScrollBarVisibility="Disabled"
@@ -284,6 +286,7 @@
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <TextBlock
         x:Name="StatusText"
@@ -312,6 +315,7 @@
           Click="Connect_Click"
         />
       </StackPanel>
+      <controls:ScrollBarGutter Grid.Column="2" ScrollOwner="{Binding ElementName=SetupScrollViewer}" />
     </Grid>
   </Grid>
 </Window>

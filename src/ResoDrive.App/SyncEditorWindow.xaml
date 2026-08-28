@@ -3,6 +3,7 @@
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:local="clr-namespace:ResoDrive.App"
+  xmlns:controls="clr-namespace:ResoDrive.App.Controls"
   Title="Sync settings"
   Width="540"
   Height="590"
@@ -30,6 +31,7 @@
     </StackPanel>
 
     <ScrollViewer
+      x:Name="EditorScrollViewer"
       Grid.Row="1"
       VerticalScrollBarVisibility="Auto"
       HorizontalScrollBarVisibility="Disabled"
@@ -212,6 +214,11 @@
     </ScrollViewer>
 
     <Grid Grid.Row="2" Margin="0,14,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
       <Button
         x:Name="DeleteButton"
         Style="{StaticResource DangerButton}"
@@ -224,7 +231,7 @@
           <TextBlock Text="Delete" VerticalAlignment="Center" />
         </StackPanel>
       </Button>
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+      <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
         <Button
           Style="{StaticResource ButtonStyle}"
           Content="Cancel"
@@ -238,6 +245,7 @@
           Click="Save_Click"
         />
       </StackPanel>
+      <controls:ScrollBarGutter Grid.Column="2" ScrollOwner="{Binding ElementName=EditorScrollViewer}" />
     </Grid>
   </Grid>
 </Window>

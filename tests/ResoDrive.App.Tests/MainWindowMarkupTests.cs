@@ -389,6 +389,35 @@ public sealed class MainWindowMarkupTests
         Assert.Contains("private static void SetProgressText", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void FixedActionsTrackTheVisibleScrollbarGutterOnEveryScrollablePage()
+    {
+        XNamespace controls = "clr-namespace:ResoDrive.App.Controls";
+        XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+
+        var mainWindow = Load("MainWindow.xaml");
+        var mainOwners = mainWindow.Descendants(controls + "ScrollBarGutter")
+            .Select(gutter => (string?)gutter.Attribute("ScrollOwner"))
+            .ToArray();
+        Assert.Equal(3, mainOwners.Length);
+        Assert.Equal("{Binding ElementName=MountRows}", mainOwners[0]);
+        Assert.Equal("{Binding ElementName=JobRows}", mainOwners[1]);
+        Assert.Equal("{Binding ElementName=SettingsScrollViewer}", mainOwners[2]);
+
+        foreach (var editorName in new[] { "MountEditorWindow.xaml", "SyncEditorWindow.xaml" })
+        {
+            var editor = Load(editorName);
+            Assert.Contains(editor.Descendants(), element =>
+                (string?)element.Attribute(xaml + "Name") == "EditorScrollViewer");
+            var gutter = Assert.Single(editor.Descendants(controls + "ScrollBarGutter"));
+            Assert.Equal("{Binding ElementName=EditorScrollViewer}", (string?)gutter.Attribute("ScrollOwner"));
+        }
+
+        var setup = Load("SetupWindow.xaml");
+        var setupGutter = Assert.Single(setup.Descendants(controls + "ScrollBarGutter"));
+        Assert.Equal("{Binding ElementName=SetupScrollViewer}", (string?)setupGutter.Attribute("ScrollOwner"));
+    }
+
     private static XDocument Load(string name) =>
         XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));
 
