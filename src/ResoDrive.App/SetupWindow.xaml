@@ -207,25 +207,7 @@
               Header="Advanced"
               Margin="0,8,0,0"
             >
-              <StackPanel Margin="16,4,0,0">
-                <TextBlock Text="rclone mount options" FontWeight="SemiBold" />
-                <TextBlock
-                  Text="Profile defaults are prefilled. Enter one option per line, for example --poll-interval=30s."
-                  Foreground="{StaticResource MutedBrush}"
-                  TextWrapping="Wrap"
-                  Margin="0,3,0,6"
-                />
-                <TextBox
-                  x:Name="ArgumentsBox"
-                  Style="{StaticResource ArgumentTextBox}"
-                  MinHeight="82"
-                  MaxHeight="120"
-                  AcceptsReturn="True"
-                  TextWrapping="NoWrap"
-                  VerticalScrollBarVisibility="Auto"
-                  AutomationProperties.Name="Additional rclone options"
-                />
-              </StackPanel>
+              <controls:MountOptionsControl x:Name="OptionsEditor" Margin="0,4,0,0" />
             </Expander>
           </Grid>
         </Border>

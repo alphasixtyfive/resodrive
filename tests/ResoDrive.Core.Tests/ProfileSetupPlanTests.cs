@@ -63,7 +63,7 @@ public sealed class ProfileSetupPlanTests
             }, Catalog, "Storage");
 
         var mount = Assert.IsType<ResoDrive.Core.Settings.MountSettings>(result.Value);
-        Assert.Equal(["--poll-interval=30s"], mount.Arguments);
+        Assert.Equal(["--poll-interval=30s", "--vfs-cache-mode=full"], mount.Arguments);
         Assert.DoesNotContain("--contimeout", mount.Arguments);
     }
 
@@ -80,7 +80,7 @@ public sealed class ProfileSetupPlanTests
                 MountArguments = []
             }, Catalog, "Storage");
 
-        Assert.Empty(Assert.IsType<ResoDrive.Core.Settings.MountSettings>(result.Value).Arguments);
+        Assert.Equal(["--vfs-cache-mode=full"], Assert.IsType<ResoDrive.Core.Settings.MountSettings>(result.Value).Arguments);
     }
 
     [Fact]

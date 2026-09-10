@@ -144,41 +144,7 @@
           Header="Advanced"
           Margin="0,7,0,0"
         >
-          <Grid Margin="0,6,0,0">
-            <Grid.RowDefinitions>
-              <RowDefinition Height="Auto" MinHeight="40" />
-              <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="116" />
-              <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <TextBlock Text="Caching" VerticalAlignment="Center" />
-            <ComboBox
-              x:Name="CacheBox"
-              Grid.Column="1"
-              Style="{StaticResource EditorComboBox}"
-              AutomationProperties.Name="Cache behavior"
-            />
-
-            <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0,5,0,0">
-              <TextBlock Text="Additional rclone options" FontWeight="SemiBold" />
-              <TextBlock
-                Text="One option per line. Keep values together, for example --poll-interval=30s."
-                Foreground="{StaticResource MutedBrush}"
-                TextWrapping="Wrap"
-                Margin="0,3,0,0"
-              />
-              <TextBox
-                x:Name="ArgumentsBox"
-                Style="{StaticResource ArgumentTextBox}"
-                Margin="0,7,0,0"
-                AcceptsReturn="True"
-                AutomationProperties.Name="Additional rclone options"
-              />
-            </StackPanel>
-          </Grid>
+          <controls:MountOptionsControl x:Name="OptionsEditor" Margin="0,6,0,0" />
         </Expander>
       </Grid>
     </ScrollViewer>

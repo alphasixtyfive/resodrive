@@ -184,7 +184,7 @@ public partial class SetupWindow : WpfWindow
             PasswordBox.ToolTip = null;
             DisplayNameBox.Text = string.Empty;
             RemotePathBox.Text = string.Empty;
-            ArgumentsBox.Clear();
+            OptionsEditor.LoadArguments([], newMount: true);
             NetworkModeBox.IsChecked = false;
             SetConnectionFieldsEditable(true);
             UpdateConnectionType();
@@ -213,10 +213,8 @@ public partial class SetupWindow : WpfWindow
         }
         StartWithWindowsBox.IsChecked = profile.StartWithWindowsByDefault;
         RemotePathBox.Text = profile.DefaultRemotePath;
-        NetworkModeBox.IsChecked = HasOption(profile.MountArguments, "--network-mode");
-        ArgumentsBox.Text = RcloneArgumentTextCodec.Format(
-            profile.MountArguments.Where(argument =>
-                !argument.Equals("--network-mode", StringComparison.OrdinalIgnoreCase)).ToArray());
+        NetworkModeBox.IsChecked = RcloneMountOptions.HasOption(profile.MountArguments, "--network-mode");
+        OptionsEditor.LoadArguments(profile.MountArguments, newMount: true);
         UpdateConnectionType();
         SetConnectionFieldsEditable(false);
 
@@ -341,13 +339,11 @@ public partial class SetupWindow : WpfWindow
         var password = PasswordBox.Password;
         var usesSftpKey = ConnectionTypeBox.SelectedItem as string == "SFTP" &&
             AuthenticationBox.SelectedItem as string == "Private key";
-        var mountArguments = RcloneArgumentTextCodec.Parse(ArgumentsBox.Text);
-        var argumentValidation = RcloneArgumentPolicy.ValidateMount(mountArguments);
-        if (!argumentValidation.IsValid)
+        if (!OptionsEditor.TryGetArguments(NetworkModeBox.IsChecked == true, out var mountArguments, out var argumentError))
         {
             WpfMessageBox.Show(
                 this,
-                string.Join(Environment.NewLine, argumentValidation.Issues.Select(issue => "• " + issue.Message)),
+                argumentError ?? "Check the mount options.",
                 "Invalid advanced options",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -593,9 +589,6 @@ public partial class SetupWindow : WpfWindow
         StartWithWindowsBox.IsEnabled = !running;
         Cursor = running ? System.Windows.Input.Cursors.Wait : System.Windows.Input.Cursors.Arrow;
     }
-
-    private static bool HasOption(IEnumerable<string> arguments, string option) =>
-        arguments.Any(argument => argument.Equals(option, StringComparison.OrdinalIgnoreCase));
 
     private sealed record SetupChoice(
         string DisplayName,

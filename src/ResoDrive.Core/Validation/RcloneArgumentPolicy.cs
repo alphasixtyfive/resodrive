@@ -14,7 +14,8 @@ public static class RcloneArgumentPolicy
                 "--low-level-retries", "--poll-interval", "--retries", "--timeout", "--transfers",
                 "--retries-sleep",
                 "--vfs-cache-max-age", "--vfs-cache-max-size", "--vfs-cache-mode",
-                "--vfs-read-chunk-size"
+                "--vfs-read-chunk-size", "--vfs-read-ahead", "--vfs-read-chunk-size-limit",
+                "--vfs-read-chunk-streams", "--vfs-cache-min-free-space"
             ],
             switches: ["--case-insensitive", "--links", "--network-mode", "--read-only"]);
 
@@ -164,7 +165,7 @@ public static class RcloneArgumentPolicy
                     }
                     else
                     {
-                        ValidateValue(inlineValue, field, index, issues);
+                        ValidateValue(inlineValue, field, index, issues, optionName);
                     }
                 }
                 else if (index + 1 >= arguments.Count || LooksLikeOption(arguments[index + 1]))
@@ -175,7 +176,7 @@ public static class RcloneArgumentPolicy
                 {
                     var value = arguments[++index];
                     totalLength += value?.Length ?? 0;
-                    ValidateValue(value, field, index, issues);
+                    ValidateValue(value, field, index, issues, optionName);
                 }
             }
             else if (inlineValue is not null)
@@ -202,7 +203,8 @@ public static class RcloneArgumentPolicy
         string? value,
         string field,
         int index,
-        List<ValidationIssue> issues)
+        List<ValidationIssue> issues,
+        string optionName)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -218,6 +220,10 @@ public static class RcloneArgumentPolicy
                 $"{field}[{index}]"));
         }
 
+        if (value.Length <= MaximumTokenLength && RcloneOptionValue.Error(optionName, value) is { } error)
+        {
+            issues.Add(new("arguments.invalidValue", $"{optionName}: {error}", $"{field}[{index}]"));
+        }
         if (value.Any(IsUnsafeCharacter))
         {
             issues.Add(new(

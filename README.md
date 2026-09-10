@@ -88,6 +88,14 @@ install, you can check for and install ResoDrive updates from Settings.
 Application and rclone downloads can continue from a partial file after a dropped
 connection, which avoids starting large transfers again on metered or satellite links.
 
+Adding and editing a drive use the same caching controls under **Advanced**:
+cache mode, cache size target, and retention since last access. Presets and custom
+values are supported. New drives use read and write caching; existing drives keep
+their previous mode until you change it. An older drive that now shows **Writes
+only** was previously shown as **Standard** even though read caching was not enabled.
+Save and accept **Apply and reconnect** to apply changes to a mounted drive.
+The configured-options summary describes the settings to apply, not a running mount.
+
 <details>
 <summary><strong>Deployment profiles</strong></summary>
 
@@ -103,6 +111,12 @@ add the connection presets you want to offer, and save the result as:
 
 Profiles are for connection details and defaults. Do not put passwords, tokens, or
 private keys in them.
+
+Profile cache flags populate the dedicated controls. Other approved arguments
+remain in Additional rclone options, with one `--option=value` or standalone
+switch per line. Profiles are copied when a connection is created; updating a
+profile file or upgrading the app does not rewrite existing drives. Sync jobs
+have their own options and do not inherit mount cache or timeout flags.
 
 </details>
 

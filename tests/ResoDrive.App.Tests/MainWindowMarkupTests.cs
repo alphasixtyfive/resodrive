@@ -121,9 +121,10 @@ public sealed class MainWindowMarkupTests
         XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
         Assert.Single(document.Descendants(presentation + "ScrollViewer"));
-        var arguments = Assert.Single(document.Descendants(presentation + "TextBox"), element =>
-            (string?)element.Attribute(xaml + "Name") == "ArgumentsBox");
-        Assert.Equal("{StaticResource ArgumentTextBox}", (string?)arguments.Attribute("Style"));
+        XNamespace controls = "clr-namespace:ResoDrive.App.Controls";
+        Assert.Single(document.Descendants(controls + "MountOptionsControl"));
+        var editor = Load("MountEditorWindow.xaml");
+        Assert.Single(editor.Descendants(controls + "MountOptionsControl"));
         Assert.Single(document.Descendants(), element =>
             (string?)element.Attribute(xaml + "Name") == "ProfilePanel");
     }

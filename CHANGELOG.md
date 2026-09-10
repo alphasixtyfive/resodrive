@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.6] - 2026-09-10
+
+- Use the same cache mode, size target, and retention controls when adding and editing drives.
+- Preserve existing cache modes and inherited defaults when upgrading or editing unrelated settings; new drives explicitly enable read and write caching.
+- Support custom cache values and show the configured performance options before saving.
+- Validate cache and performance option values before starting rclone, and support advanced read-ahead, chunk streams, chunk limits, and minimum free cache space.
+- Keep deployment cache options in the dedicated controls instead of duplicating them in advanced text.
+
 ## [0.3.5] - 2026-08-28
 
 - Use the same settings gear for drives and sync jobs, with clearer tooltips and screen-reader labels.

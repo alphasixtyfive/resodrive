@@ -10,8 +10,6 @@ namespace ResoDrive.App;
 
 public partial class MountEditorWindow : WpfWindow
 {
-    private const string RecommendedCache = "Standard (recommended)";
-    private const string MinimalCache = "Minimal disk use";
     private static readonly TimeSpan DriveInventoryTimeout = TimeSpan.FromSeconds(5);
 
     private readonly MountSettings? _existing;
@@ -30,15 +28,13 @@ public partial class MountEditorWindow : WpfWindow
         DriveBox.IsEnabled = false;
         SaveButton.IsEnabled = false;
         Loaded += MountEditorWindow_Loaded;
-        CacheBox.Items.Add(RecommendedCache);
-        CacheBox.Items.Add(MinimalCache);
+        OptionsEditor.LoadArguments(existing?.Arguments ?? [], newMount: existing is null);
         DeleteButton.Visibility = existing is null ? Visibility.Collapsed : Visibility.Visible;
         Heading.Text = existing is null ? "Add drive" : "Edit drive";
         ConnectionText.Text = $"Using the {_remoteName} storage connection.";
 
         if (existing is null)
         {
-            CacheBox.SelectedItem = RecommendedCache;
             EnabledBox.IsChecked = true;
             RestartBox.IsChecked = true;
             AttemptsBox.Text = "0";
@@ -53,12 +49,7 @@ public partial class MountEditorWindow : WpfWindow
             RestartBox.IsChecked = existing.Restart.Enabled;
             AttemptsBox.Text = existing.Restart.MaximumAttempts.ToString(
                 System.Globalization.CultureInfo.InvariantCulture);
-            CacheBox.SelectedItem = UsesMinimalCache(existing.Arguments)
-                ? MinimalCache
-                : RecommendedCache;
-            NetworkModeBox.IsChecked = HasOption(existing.Arguments, "--network-mode");
-            ArgumentsBox.Text = RcloneArgumentTextCodec.Format(
-                RemoveManagedArguments(existing.Arguments));
+            NetworkModeBox.IsChecked = RcloneMountOptions.HasOption(existing.Arguments, "--network-mode");
         }
 
         UpdateRestartControls();
@@ -106,27 +97,11 @@ public partial class MountEditorWindow : WpfWindow
             return;
         }
 
-        var managedArguments = new List<string>
-        {
-            CacheBox.SelectedItem?.ToString() == MinimalCache
-                ? "--vfs-cache-mode=minimal"
-                : "--vfs-cache-mode=full",
-        };
-        if (NetworkModeBox.IsChecked == true)
-        {
-            managedArguments.Add("--network-mode");
-        }
-        var arguments = managedArguments
-            .Concat(RcloneArgumentTextCodec.Parse(ArgumentsBox.Text))
-            .ToArray();
-        var argumentValidation = RcloneArgumentPolicy.ValidateMount(arguments);
-        if (!argumentValidation.IsValid)
+        if (!OptionsEditor.TryGetArguments(NetworkModeBox.IsChecked == true, out var arguments, out var argumentError))
         {
             WpfMessageBox.Show(
                 this,
-                string.Join(
-                    Environment.NewLine,
-                    argumentValidation.Issues.Select(issue => "• " + issue.Message)),
+                argumentError ?? "Check the mount options.",
                 "Invalid advanced options",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -240,54 +215,4 @@ public partial class MountEditorWindow : WpfWindow
         SaveButton.IsEnabled = true;
     }
 
-    private static bool UsesMinimalCache(string[] arguments)
-    {
-        for (var index = 0; index < arguments.Length; index++)
-        {
-            if (arguments[index].Equals("--vfs-cache-mode=minimal", StringComparison.OrdinalIgnoreCase) ||
-                arguments[index].Equals("--vfs-cache-mode", StringComparison.OrdinalIgnoreCase) &&
-                index + 1 < arguments.Length &&
-                arguments[index + 1].Equals("minimal", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool HasOption(IEnumerable<string> arguments, string option) =>
-        arguments.Any(argument =>
-            argument.Equals(option, StringComparison.OrdinalIgnoreCase) ||
-            argument.StartsWith(option + "=", StringComparison.OrdinalIgnoreCase));
-
-    private static string[] RemoveManagedArguments(string[] arguments)
-    {
-        var result = new List<string>(arguments.Length);
-        for (var index = 0; index < arguments.Length; index++)
-        {
-            var argument = arguments[index];
-            if (argument.StartsWith("--vfs-cache-mode=", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-            if (argument.Equals("--network-mode", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-            if (argument.Equals("--vfs-cache-mode", StringComparison.OrdinalIgnoreCase))
-            {
-                if (index + 1 < arguments.Length &&
-                    !arguments[index + 1].StartsWith("--", StringComparison.Ordinal))
-                {
-                    index++;
-                }
-                continue;
-            }
-
-            result.Add(argument);
-        }
-
-        return result.ToArray();
-    }
 }

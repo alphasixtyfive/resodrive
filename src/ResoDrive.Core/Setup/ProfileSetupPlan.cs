@@ -50,7 +50,7 @@ public static class ProfileSetupPlan
 
         var remotePath = NormalizeRemotePath(request.RemotePath);
         var displayName = request.DisplayName.Trim();
-        var mountArguments = request.MountArguments ?? profile.MountArguments;
+        var mountArguments = RcloneMountOptions.ForNewMount(request.MountArguments ?? profile.MountArguments);
         var argumentValidation = RcloneArgumentPolicy.ValidateMount(mountArguments);
         if (!argumentValidation.IsValid)
         {

@@ -518,12 +518,10 @@ public sealed class RcloneMountCoordinator : IAsyncDisposable
         yield return "--rc-pass";
         yield return control.Password;
         yield return "--rc-enable-metrics=false";
-        if (!definition.Arguments.Any(argument =>
-                argument.Equals("--vfs-cache-mode", StringComparison.OrdinalIgnoreCase) ||
-                argument.StartsWith("--vfs-cache-mode=", StringComparison.OrdinalIgnoreCase)))
+        if (!RcloneMountOptions.HasOption(definition.Arguments, RcloneMountOptions.CacheModeOption))
         {
             yield return "--vfs-cache-mode";
-            yield return "writes";
+            yield return RcloneMountOptions.LegacyCacheMode;
         }
         yield return "--cache-dir";
         yield return _paths.Cache;
